@@ -12,7 +12,7 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 (0, database_1.connectDB)();
 app.get('/', (req, res) => {
-    res.send('Hello, everyone!!!');
+    res.send('Server running');
 });
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
