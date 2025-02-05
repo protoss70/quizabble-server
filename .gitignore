@@ -5,8 +5,7 @@
 /dist
 
 # Environment variables file (don't commit sensitive keys)
-.env
-
+.environment
 # Vercel environment variables (don't commit them)
 .vercel
 
@@ -16,6 +15,11 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# nodemon files and logs
+npm-debug.log*
+.yarn-cache/
+*.log
 
 # OS-specific files
 .DS_Store
@@ -29,3 +33,5 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 *.swp
+
+.env
