@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
   "builds": [
     {
       "src": "dist/server.js",
@@ -14,11 +15,5 @@
       "src": "/(.*)",
       "dest": "dist/server.js"
     }
-  ],
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    },
-    "command": "npm run build"
-  }
+  ]
 }
