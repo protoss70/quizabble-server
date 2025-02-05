@@ -28,7 +28,7 @@
     "@types/express": "^5.0.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^22.13.1",
-    "husky": "^9.1.7",
+    "husky": "^8.0.0",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
