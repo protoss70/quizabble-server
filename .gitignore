@@ -3,6 +3,7 @@
 
 # TypeScript build output
 /dist
+/api
 
 # Environment variables file (don't commit sensitive keys)
 .environment
@@ -35,3 +36,5 @@ Thumbs.db
 *.swp
 
 .env
+
+.vercel
