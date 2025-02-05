@@ -5,17 +5,17 @@
   "outputDirectory": "dist",
   "builds": [
     {
-      "src": "api/server.js",
+      "src": "dist/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["api/**"]
+        "includeFiles": ["dist/**"]
       }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/server.js"
+      "dest": "dist/server.js"
     }
   ]
 }
