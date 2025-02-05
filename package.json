@@ -9,6 +9,11 @@
     "build": "tsc",
     "serve": "node dist/server.js"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run build"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -22,6 +27,7 @@
     "@types/express": "^5.0.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^22.13.1",
+    "husky": "^9.1.7",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
