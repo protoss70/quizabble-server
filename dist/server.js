@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadTTSFileToS3 = uploadTTSFileToS3;
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const database_1 = require("./database");
+const database_1 = require("./services/database");
 const elevenlabs_1 = require("./services/elevenlabs");
 const s3Uploader_1 = require("./services/s3Uploader");
 dotenv_1.default.config();
@@ -33,16 +33,7 @@ app.get('/', (req, res) => {
  */
 function uploadTTSFileToS3(text) {
     return __awaiter(this, void 0, void 0, function* () {
-        const voiceId = 'uju3wxzG5OhpWcoi3SMy';
-        const modelId = 'eleven_multilingual_v2';
-        const voiceSettings = {
-            stability: 0.4,
-            similarity_boost: 0.75,
-            style: 0.2,
-            speaker_boost: true,
-        };
-        const audioBuffer = yield (0, elevenlabs_1.getAudioBlob)(text, voiceId, modelId, voiceSettings);
-        console.log("GOT THE FILE");
+        const audioBuffer = yield (0, elevenlabs_1.getAudioBlob)(text, "michael");
         if (!audioBuffer) {
             throw new Error('Failed to generate audio buffer');
         }

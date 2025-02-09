@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import { connectDB } from './database';
+import { connectDB } from './services/database';
 import { getAudioBlob } from './services/elevenlabs';
 import { uploadFileToS3 } from './services/s3Uploader';
 
@@ -28,17 +28,7 @@ interface VoiceSettings {
  * @returns The URL of the uploaded audio file if successful.
  */
 export async function uploadTTSFileToS3(text: string): Promise<string | null> {
-  const voiceId = 'uju3wxzG5OhpWcoi3SMy';
-  const modelId = 'eleven_multilingual_v2';
-  const voiceSettings: VoiceSettings = {
-    stability: 0.4,
-    similarity_boost: 0.75,
-    style: 0.2,
-    speaker_boost: true,
-  };
-
-  const audioBuffer = await getAudioBlob(text, voiceId, modelId, voiceSettings);
-  console.log("GOT THE FILE")
+  const audioBuffer = await getAudioBlob(text, "michael");
   if (!audioBuffer) {
     throw new Error('Failed to generate audio buffer');
   }

@@ -48,18 +48,39 @@ exports.saveAudioFile = saveAudioFile;
 const elevenlabsPost_1 = require("../api/elevenlabsPost");
 const fs_1 = require("fs");
 const path = __importStar(require("path"));
+const voices = {
+    michael: {
+        voiceId: 'uju3wxzG5OhpWcoi3SMy',
+        modelId: "eleven_multilingual_v2",
+        voiceSettings: {
+            stability: 0.4,
+            similarity_boost: 0.75,
+            style: 0.2,
+            speaker_boost: true,
+        }
+    },
+    jeff: {
+        voiceId: 'gs0tAILXbY5DNrJrsM6F',
+        modelId: "eleven_multilingual_v2",
+        voiceSettings: {
+            stability: 0.4,
+            similarity_boost: 0.75,
+            style: 0.2,
+            speaker_boost: true,
+        }
+    }
+};
 /**
  * Calls the textToSpeech function and returns the resulting audio buffer as a Blob.
  *
  * @param text - The text to be converted to speech.
- * @param voiceId - The ID of the voice to be used.
- * @param modelId - The ID of the model to be used.
- * @param voiceSettings - The voice settings configuration.
+ * @param voiceKey - key for which voice config to be used
  * @returns A Blob containing the generated audio file.
  */
-function getAudioBlob(text, voiceId, modelId, voiceSettings) {
+function getAudioBlob(text, voiceKey) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const { voiceId, modelId, voiceSettings } = voices[voiceKey];
             const audioBuffer = yield (0, elevenlabsPost_1.callElevenLabsTTS)(voiceId, text, modelId, voiceSettings);
             return audioBuffer;
         }
