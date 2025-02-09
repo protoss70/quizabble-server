@@ -12,10 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.uploadTTSFileToS3 = uploadTTSFileToS3;
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const database_1 = require("./database");
 const elevenlabs_1 = require("./services/elevenlabs");
+const s3Uploader_1 = require("./services/s3Uploader");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -23,17 +25,47 @@ app.use(express_1.default.json());
 app.get('/', (req, res) => {
     res.send('Server running');
 });
-// New route for handling text-to-speech
+/**
+ * Generates an audio buffer from text using the ElevenLabs TTS API and uploads it to S3.
+ *
+ * @param text - The text to be converted to speech.
+ * @returns The URL of the uploaded audio file if successful.
+ */
+function uploadTTSFileToS3(text) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const voiceId = 'uju3wxzG5OhpWcoi3SMy';
+        const modelId = 'eleven_multilingual_v2';
+        const voiceSettings = {
+            stability: 0.4,
+            similarity_boost: 0.75,
+            style: 0.2,
+            speaker_boost: true,
+        };
+        const audioBuffer = yield (0, elevenlabs_1.getAudioBlob)(text, voiceId, modelId, voiceSettings);
+        console.log("GOT THE FILE");
+        if (!audioBuffer) {
+            throw new Error('Failed to generate audio buffer');
+        }
+        const mimeType = 'audio/mpeg';
+        console.log("starting upload");
+        return yield (0, s3Uploader_1.uploadFileToS3)('tts', 'tts/michael', audioBuffer, mimeType);
+    });
+}
+// Express route to handle TTS requests and upload the resulting audio to S3.
 app.post('/tts', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { text } = req.body; // Extract the text from the request body
+    const { text } = req.body;
     if (!text) {
         res.status(400).json({ error: 'Text is required' });
         return;
     }
     try {
-        // Call saveAudioFile to generate and save the audio file
-        yield (0, elevenlabs_1.saveAudioFile)(text);
-        res.status(200).json({ message: 'Audio file saved successfully' });
+        const s3Url = yield uploadTTSFileToS3(text);
+        if (s3Url) {
+            res.status(200).json({ message: 'Audio file uploaded successfully', url: s3Url });
+        }
+        else {
+            res.status(500).json({ error: 'Failed to upload audio file' });
+        }
     }
     catch (error) {
         console.error('Error during TTS processing:', error);

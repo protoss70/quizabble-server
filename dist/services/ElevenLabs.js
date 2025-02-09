@@ -42,69 +42,57 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.textToSpeech = textToSpeech;
+exports.getAudioBlob = getAudioBlob;
 exports.saveAudioFile = saveAudioFile;
 // src/services/elevenlabs.ts
 const elevenlabsPost_1 = require("../api/elevenlabsPost");
 const fs_1 = require("fs");
 const path = __importStar(require("path"));
 /**
- * Converts text to speech using the ElevenLabs API via an internal service.
+ * Calls the textToSpeech function and returns the resulting audio buffer as a Blob.
  *
- * @param voiceId - The voice/model ID.
- * @param text - The text to convert to speech.
- * @param modelId - (Optional) Model ID if required.
- * @param voiceSettings - (Optional) Additional voice settings.
- * @returns A Promise that resolves with the audio buffer.
+ * @param text - The text to be converted to speech.
+ * @param voiceId - The ID of the voice to be used.
+ * @param modelId - The ID of the model to be used.
+ * @param voiceSettings - The voice settings configuration.
+ * @returns A Blob containing the generated audio file.
  */
-function textToSpeech(voiceId, text, modelId, voiceSettings) {
+function getAudioBlob(text, voiceId, modelId, voiceSettings) {
     return __awaiter(this, void 0, void 0, function* () {
-        return (0, elevenlabsPost_1.callElevenLabsTTS)(voiceId, text, modelId, voiceSettings);
+        try {
+            const audioBuffer = yield (0, elevenlabsPost_1.callElevenLabsTTS)(voiceId, text, modelId, voiceSettings);
+            return audioBuffer;
+        }
+        catch (error) {
+            console.error('Error generating audio Blob:', error);
+            return null;
+        }
     });
 }
 /**
  * Calls the textToSpeech function and saves the resulting audio buffer as an MP3 file
  * in the 'assets' folder located at the project root.
- *
- * This configuration uses the following settings for Michael C. Vincent:
- * - Model: Eleven Multilingual v2
- * - Stability: 40%
- * - Similarity: 75%
- * - Style: 50%
- * - Speaker boost: Enabled
  */
 function saveAudioFile(text) {
     return __awaiter(this, void 0, void 0, function* () {
-        // Michael C. Vincent's voice settings:
-        // (Replace 'michael-c-vincent-voice-id' with the actual voice ID)
-        console.log("HERE");
         const voiceId = 'uju3wxzG5OhpWcoi3SMy';
         const modelId = 'eleven_multilingual_v2';
         const voiceSettings = {
-            stability: 0.4, // 40%
-            similarity_boost: 0.75, // 75%
-            style: 0.2, // 50%
-            speaker_boost: true, // Enabled
+            stability: 0.4,
+            similarity_boost: 0.75,
+            style: 0.2,
+            speaker_boost: true,
         };
         try {
-            console.log("SENT");
-            // Get the audio buffer from the ElevenLabs API.
-            const audioBuffer = yield textToSpeech(voiceId, text, modelId, voiceSettings);
-            console.log("RECIEVED");
-            // Resolve the path to the 'assets' directory at the project root.
+            const audioBuffer = yield (0, elevenlabsPost_1.callElevenLabsTTS)(voiceId, text, modelId, voiceSettings);
             const assetsDir = path.resolve(__dirname, '../../assets');
-            // Ensure the assets directory exists; if not, create it.
             try {
                 yield fs_1.promises.access(assetsDir);
             }
             catch (_a) {
                 yield fs_1.promises.mkdir(assetsDir, { recursive: true });
             }
-            console.log("YES DIRECTORY");
-            // Define the file path where the MP3 will be saved.
             const filePath = path.join(assetsDir, 'tts.mp3');
-            console.log("WRITING");
-            // Write the audio buffer to the MP3 file.
             yield fs_1.promises.writeFile(filePath, audioBuffer);
             console.log(`Audio file saved successfully at ${filePath}`);
         }
