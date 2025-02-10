@@ -1,8 +1,9 @@
-import express, { Request, Response } from 'express';
-import dotenv from 'dotenv';
-import { connectDB } from './services/database';
-import { getAudioBlob } from './services/elevenlabs';
-import { uploadFileToS3 } from './services/s3Uploader';
+import express, { Request, Response } from "express";
+import dotenv from "dotenv";
+import { connectDB } from "./services/database";
+import { getAudioBlob } from "./services/elevenlabs";
+import { uploadFileToS3 } from "./services/s3Uploader";
+import { rearrangementQuestion } from "./services/chatgpt/chatgptService";
 
 dotenv.config();
 const app = express();
@@ -10,8 +11,8 @@ app.use(express.json());
 
 connectDB();
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Server running');
+app.get("/", (req: Request, res: Response) => {
+  res.send("Server running");
 });
 
 interface VoiceSettings {
@@ -30,35 +31,39 @@ interface VoiceSettings {
 export async function uploadTTSFileToS3(text: string): Promise<string | null> {
   const audioBuffer = await getAudioBlob(text, "michael");
   if (!audioBuffer) {
-    throw new Error('Failed to generate audio buffer');
+    throw new Error("Failed to generate audio buffer");
   }
 
-  const mimeType = 'audio/mpeg';
-  console.log("starting upload")
-  return await uploadFileToS3('tts', 'tts/michael', audioBuffer, mimeType);
+  const mimeType = "audio/mpeg";
+  console.log("starting upload");
+  return await uploadFileToS3("tts", "tts/michael", audioBuffer, mimeType);
 }
 
-// Express route to handle TTS requests and upload the resulting audio to S3.
-app.post('/tts', async (req: Request, res: Response): Promise<void> => {
-  const { text } = req.body;
-
-  if (!text) {
-    res.status(400).json({ error: 'Text is required' });
-    return;
-  }
-
-  try {
-    const s3Url = await uploadTTSFileToS3(text);
-    if (s3Url) {
-      res.status(200).json({ message: 'Audio file uploaded successfully', url: s3Url });
-    } else {
-      res.status(500).json({ error: 'Failed to upload audio file' });
-    }
-  } catch (error) {
-    console.error('Error during TTS processing:', error);
-    res.status(500).json({ error: 'An error occurred while generating the audio file' });
-  }
-});
+// app.post("/summarize", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const result = await rearrangementQuestion(
+//       [
+//         "Could you please introduce yourself?",
+//         "Which grade are you in?",
+//         "Do you have any hobbies other than studying?",
+//         "What instruments do you play?",
+//         "How long have you been playing electric guitar?",
+//         "Who is your favorite singer?",
+//         "Have you ever been to a concert by your favorite band?",
+//         "How was the feedback from the audience?",
+//         "Why do you want to play viola?",
+//         "Do you want to write your own songs?",
+//       ],
+//       "A1",
+//     );
+//     res.status(200).json(result);
+//   } catch (error) {
+//     console.error("Error during text summarization:", error);
+//     res
+//       .status(500)
+//       .json({ error: "An error occurred while generating the summary" });
+//   }
+// });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

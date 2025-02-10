@@ -17,9 +17,9 @@ const firebase_1 = __importDefault(require("../services/firebase")); // Import F
 // Middleware to check Firebase ID token
 const isAuth = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1]; // Get token from Authorization header (Bearer <token>)
+    const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1]; // Get token from Authorization header (Bearer <token>)
     if (!token) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        return res.status(401).json({ message: "Unauthorized" });
     }
     try {
         const decodedToken = yield firebase_1.default.auth().verifyIdToken(token);
@@ -27,7 +27,7 @@ const isAuth = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
         next();
     }
     catch (error) {
-        return res.status(403).json({ message: 'Invalid token' });
+        return res.status(403).json({ message: "Invalid token" });
     }
 });
 exports.isAuth = isAuth;

@@ -21,10 +21,10 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
             throw new Error("Mongo URI is not defined");
         }
         yield mongoose_1.default.connect(mongoUri);
-        console.log('MongoDB connected');
+        console.log("MongoDB connected");
     }
     catch (error) {
-        console.error('MongoDB connection error', error);
+        console.error("MongoDB connection error", error);
         process.exit(1);
     }
 });

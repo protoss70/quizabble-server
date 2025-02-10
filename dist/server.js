@@ -22,8 +22,8 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 (0, database_1.connectDB)();
-app.get('/', (req, res) => {
-    res.send('Server running');
+app.get("/", (req, res) => {
+    res.send("Server running");
 });
 /**
  * Generates an audio buffer from text using the ElevenLabs TTS API and uploads it to S3.
@@ -35,34 +35,38 @@ function uploadTTSFileToS3(text) {
     return __awaiter(this, void 0, void 0, function* () {
         const audioBuffer = yield (0, elevenlabs_1.getAudioBlob)(text, "michael");
         if (!audioBuffer) {
-            throw new Error('Failed to generate audio buffer');
+            throw new Error("Failed to generate audio buffer");
         }
-        const mimeType = 'audio/mpeg';
+        const mimeType = "audio/mpeg";
         console.log("starting upload");
-        return yield (0, s3Uploader_1.uploadFileToS3)('tts', 'tts/michael', audioBuffer, mimeType);
+        return yield (0, s3Uploader_1.uploadFileToS3)("tts", "tts/michael", audioBuffer, mimeType);
     });
 }
-// Express route to handle TTS requests and upload the resulting audio to S3.
-app.post('/tts', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { text } = req.body;
-    if (!text) {
-        res.status(400).json({ error: 'Text is required' });
-        return;
-    }
-    try {
-        const s3Url = yield uploadTTSFileToS3(text);
-        if (s3Url) {
-            res.status(200).json({ message: 'Audio file uploaded successfully', url: s3Url });
-        }
-        else {
-            res.status(500).json({ error: 'Failed to upload audio file' });
-        }
-    }
-    catch (error) {
-        console.error('Error during TTS processing:', error);
-        res.status(500).json({ error: 'An error occurred while generating the audio file' });
-    }
-}));
+// app.post("/summarize", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const result = await rearrangementQuestion(
+//       [
+//         "Could you please introduce yourself?",
+//         "Which grade are you in?",
+//         "Do you have any hobbies other than studying?",
+//         "What instruments do you play?",
+//         "How long have you been playing electric guitar?",
+//         "Who is your favorite singer?",
+//         "Have you ever been to a concert by your favorite band?",
+//         "How was the feedback from the audience?",
+//         "Why do you want to play viola?",
+//         "Do you want to write your own songs?",
+//       ],
+//       "A1",
+//     );
+//     res.status(200).json(result);
+//   } catch (error) {
+//     console.error("Error during text summarization:", error);
+//     res
+//       .status(500)
+//       .json({ error: "An error occurred while generating the summary" });
+//   }
+// });
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

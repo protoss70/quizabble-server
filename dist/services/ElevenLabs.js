@@ -50,25 +50,25 @@ const fs_1 = require("fs");
 const path = __importStar(require("path"));
 const voices = {
     michael: {
-        voiceId: 'uju3wxzG5OhpWcoi3SMy',
+        voiceId: "uju3wxzG5OhpWcoi3SMy",
         modelId: "eleven_multilingual_v2",
         voiceSettings: {
             stability: 0.4,
             similarity_boost: 0.75,
             style: 0.2,
             speaker_boost: true,
-        }
+        },
     },
     jeff: {
-        voiceId: 'gs0tAILXbY5DNrJrsM6F',
+        voiceId: "gs0tAILXbY5DNrJrsM6F",
         modelId: "eleven_multilingual_v2",
         voiceSettings: {
             stability: 0.4,
             similarity_boost: 0.75,
             style: 0.2,
             speaker_boost: true,
-        }
-    }
+        },
+    },
 };
 /**
  * Calls the textToSpeech function and returns the resulting audio buffer as a Blob.
@@ -85,7 +85,7 @@ function getAudioBlob(text, voiceKey) {
             return audioBuffer;
         }
         catch (error) {
-            console.error('Error generating audio Blob:', error);
+            console.error("Error generating audio Blob:", error);
             return null;
         }
     });
@@ -96,8 +96,8 @@ function getAudioBlob(text, voiceKey) {
  */
 function saveAudioFile(text) {
     return __awaiter(this, void 0, void 0, function* () {
-        const voiceId = 'uju3wxzG5OhpWcoi3SMy';
-        const modelId = 'eleven_multilingual_v2';
+        const voiceId = "uju3wxzG5OhpWcoi3SMy";
+        const modelId = "eleven_multilingual_v2";
         const voiceSettings = {
             stability: 0.4,
             similarity_boost: 0.75,
@@ -106,19 +106,19 @@ function saveAudioFile(text) {
         };
         try {
             const audioBuffer = yield (0, elevenlabsPost_1.callElevenLabsTTS)(voiceId, text, modelId, voiceSettings);
-            const assetsDir = path.resolve(__dirname, '../../assets');
+            const assetsDir = path.resolve(__dirname, "../../assets");
             try {
                 yield fs_1.promises.access(assetsDir);
             }
             catch (_a) {
                 yield fs_1.promises.mkdir(assetsDir, { recursive: true });
             }
-            const filePath = path.join(assetsDir, 'tts.mp3');
+            const filePath = path.join(assetsDir, "tts.mp3");
             yield fs_1.promises.writeFile(filePath, audioBuffer);
             console.log(`Audio file saved successfully at ${filePath}`);
         }
         catch (error) {
-            console.error('Error saving audio file:', error);
+            console.error("Error saving audio file:", error);
         }
     });
 }

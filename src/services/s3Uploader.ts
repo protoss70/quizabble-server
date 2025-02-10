@@ -30,12 +30,12 @@ export async function uploadFileToS3(
   fileId: string,
   folderPath: string,
   fileBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
 ): Promise<string | null> {
   try {
     // Use path.posix.join to ensure the folder separator is '/'
     const fileKey = path.posix.join(folderPath, `${fileId}-${uuidv4()}`);
-    
+
     const uploadParams = {
       Bucket: S3_BUCKET_NAME,
       Key: fileKey,
