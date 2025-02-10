@@ -44,31 +44,30 @@ function uploadTTSFileToS3(text) {
 }
 // app.post("/summarize", async (req: Request, res: Response): Promise<void> => {
 //   try {
-//     const result = await wordMatchQuestion(["introduction",
-//     "music",
-//     "instruments",
-//     "viola",
-//     "electric guitar",
-//     "concert",
-//     "band",
-//     "hobbies",
-//     "favorite artist",
-//     "songwriting"], "Turkish", 5)
-//     // const result = await rearrangementQuestion(
-//     //   [
-//     //     "Could you please introduce yourself?",
-//     //     "Which grade are you in?",
-//     //     "Do you have any hobbies other than studying?",
-//     //     "What instruments do you play?",
-//     //     "How long have you been playing electric guitar?",
-//     //     "Who is your favorite singer?",
-//     //     "Have you ever been to a concert by your favorite band?",
-//     //     "How was the feedback from the audience?",
-//     //     "Why do you want to play viola?",
-//     //     "Do you want to write your own songs?",
-//     //   ],
-//     //   "A1",
-//     // );
+//     // const result = await wordMatchQuestion(["introduction",
+//     // "music",
+//     // "instruments",
+//     // "viola",
+//     // "electric guitar",
+//     // "concert",
+//     // "band",
+//     // "hobbies",
+//     // "favorite artist",
+//     // "songwriting"], "Turkish", 5)
+//     const result = await fillInTheBlankQuestion(
+//       [
+//         "Could you please introduce yourself?",
+//         "Which grade are you in?",
+//         "What instruments do you play?",
+//         "Who is your favorite singer?",
+//         "Have you ever been to a concert by your favorite band?",
+//         "How was the feedback from the audience?",
+//         "Why do you want to play viola?",
+//         "Do you want to write your own songs?",
+//       ],
+//       "B2",
+//       2,
+//     );
 //     res.status(200).json(result);
 //   } catch (error) {
 //     console.error("Error during text summarization:", error);

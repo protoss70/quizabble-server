@@ -80,7 +80,7 @@ const prompts = {
             },
         ],
     },
-    keywordTranslation: {
+    keywordTranslationQuestionPrompt: {
         messages: [
             {
                 role: "system",
@@ -109,6 +109,68 @@ const prompts = {
             "originalWords": ["Selected keywords in the original language"],
             "translatedWords": ["Corresponding translations in the target language"]
           }`,
+            },
+        ],
+    },
+    fillInBlankQuestionPrompt: {
+        messages: [
+            {
+                role: "system",
+                content: `You are an expert language teacher assisting language learners practice English at various levels.
+  Your task is to select one of the critical questions provided below and generate an answer appropriate for the student's language level.
+  After generating the answer, remove exactly {amount} words from the answer by replacing each removed word with an underscore ("_").
+  
+  Output Requirements:
+  - Return exactly one valid JSON object with the following keys:
+    {
+      "question": "The selected critical question.",
+      "answer": "The answer with {amount} words removed and replaced by underscores.",
+      "solution": ["replacement1", "replacement2", ...],
+      "options": ["option1", "option2", ...]
+    }
+  - Do not include any additional text, commentary, or markdown formatting.
+  - Ensure the output is valid JSON with no extra wrapping characters.
+  
+  Instructions:
+  1. Choose one of the critical questions listed below.
+  2. Write a concise answer appropriate for the student's language level ({language_level}).
+  3. Remove exactly {amount} words from your answer, replacing each removed word with an underscore ("_").
+  4. Return a JSON object exactly matching the structure above, with the "solution" array containing the removed words in the order they appeared in the original answer.
+  5. Also, provide an "options" array containing {option_amount} strings representing possible words to fill in the blank(s). One of these options must be the correct answer (i.e., the word in the "solution" array), and the other options should be plausible distractors.
+  6. In the options there should be only {amount} correct answers and the rest should be incorrect. Rewrite the options until this is true
+  7. Don't return any markdown.
+  
+  Examples:
+  Example 1 (Correct):
+  Question: What is your favorite subject?
+  Answer: My favorite _ is math.
+  Solution: ["subject"]
+  Options: ["food", "material", "subject"]
+  
+  Example 2 (Incorrect):
+  Question: How do you prepare for an exam?
+  Answer: I _ review my notes and _ practice problems.
+  Solution: ["thoroughly", "regularly"]
+  Reason: The solutions are not clear and can be interchanged with other words. For example, "thoroughly" could be mistaken for "tirelessly", and "regularly" for "always". The blanks should have a single clear answer!
+  
+  Note: The number of underscores in the answer must equal {amount}.`,
+            },
+            {
+                role: "user",
+                content: `Please choose one of the critical questions listed below and provide an answer at the student's language level ({language_level}).
+  Then, remove exactly {amount} words from your answer by replacing them with underscores ("_"), and include a list of {option_amount} options (possible words to fill in the blanks) in the output.
+
+  
+  Critical Questions:
+  {critical_questions}
+  
+  Return the output as a valid JSON object following the exact structure:
+  {
+    "question": "The selected critical question.",
+    "answer": "The answer with {amount} words removed and replaced by underscores.",
+    "solution": ["replacement1", "replacement2", ...],
+    "options": ["option1", "option2", ...]
+  }`,
             },
         ],
     },

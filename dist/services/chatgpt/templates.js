@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.wordMatchingTemplate = exports.rearrangementQuestionTemplate = exports.summaryAndKeywordsTemplate = void 0;
+exports.fillInTheBlankTemplate = exports.wordMatchingTemplate = exports.rearrangementQuestionTemplate = exports.summaryAndKeywordsTemplate = void 0;
 exports.summaryAndKeywordsTemplate = {
     summary: "",
     keywords: [],
@@ -14,4 +14,10 @@ exports.rearrangementQuestionTemplate = {
 exports.wordMatchingTemplate = {
     originalWords: [],
     translatedWords: [],
+};
+exports.fillInTheBlankTemplate = {
+    question: "",
+    answer: "",
+    solution: [],
+    options: [],
 };

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSummaryAndKeywords = getSummaryAndKeywords;
 exports.rearrangementQuestion = rearrangementQuestion;
 exports.wordMatchQuestion = wordMatchQuestion;
+exports.fillInTheBlankQuestion = fillInTheBlankQuestion;
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = __importDefault(require("./prompts"));
 const templates_1 = require("./templates");
@@ -143,6 +144,50 @@ function wordMatchQuestion(keywords, target_language, amount) {
         catch (error) {
             console.error("Error calling OpenAI:", error);
             return { error: "Failed to generate word match question." };
+        }
+    });
+}
+function fillInTheBlankQuestion(criticalQuestions_1, languageLevel_1, amount_1) {
+    return __awaiter(this, arguments, void 0, function* (criticalQuestions, languageLevel, amount, option_amount = 4) {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.fillInBlankQuestionPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{language_level}", languageLevel)
+                        .replace("{critical_questions}", JSON.stringify(criticalQuestions))
+                        .replace("{amount}", amount.toString())
+                        .replace("{option_amount}", (amount * 2 + 1).toString()),
+                })),
+                temperature: 0.5,
+                max_tokens: 200,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.fillInTheBlankTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.answer = parsedOutput.answer || "";
+                result.solution = parsedOutput.solution || [];
+                result.options = parsedOutput.options || [];
+            }
+            catch (err) {
+                console.error("Failed to parse JSON response:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./fill_in_blank_${timestamp}.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate fill-in-the-blank question." };
         }
     });
 }
