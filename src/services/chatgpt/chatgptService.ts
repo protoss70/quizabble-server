@@ -148,7 +148,6 @@ async function fillInTheBlankQuestion(
   criticalQuestions: string[],
   languageLevel: string,
   amount: number,
-  option_amount: number= 4
 ) {
   try {
     const response = await openai.chat.completions.create({
@@ -159,7 +158,7 @@ async function fillInTheBlankQuestion(
           .replace("{language_level}", languageLevel)
           .replace("{critical_questions}", JSON.stringify(criticalQuestions))
           .replace("{amount}", amount.toString())
-          .replace("{option_amount}", ((amount * 2) + 1).toString()),
+          .replace("{option_amount}", (amount * 2 + 1).toString()),
       })),
       temperature: 0.5,
       max_tokens: 200,
@@ -173,7 +172,7 @@ async function fillInTheBlankQuestion(
       result.question = parsedOutput.question || "";
       result.answer = parsedOutput.answer || "";
       result.solution = parsedOutput.solution || [];
-      result.options = parsedOutput.options || []
+      result.options = parsedOutput.options || [];
     } catch (err) {
       console.error("Failed to parse JSON response:", err);
     }
@@ -193,5 +192,9 @@ async function fillInTheBlankQuestion(
   }
 }
 
-
-export { getSummaryAndKeywords, rearrangementQuestion, wordMatchQuestion, fillInTheBlankQuestion };
+export {
+  getSummaryAndKeywords,
+  rearrangementQuestion,
+  wordMatchQuestion,
+  fillInTheBlankQuestion,
+};

@@ -166,7 +166,7 @@ const prompts: PromptStructure = {
   Solution: ["thoroughly", "regularly"]
   Reason: The solutions are not clear and can be interchanged with other words. For example, "thoroughly" could be mistaken for "tirelessly", and "regularly" for "always". The blanks should have a single clear answer!
   
-  Note: The number of underscores in the answer must equal {amount}.`
+  Note: The number of underscores in the answer must equal {amount}.`,
       },
       {
         role: "user",
@@ -183,9 +183,9 @@ const prompts: PromptStructure = {
     "answer": "The answer with {amount} words removed and replaced by underscores.",
     "solution": ["replacement1", "replacement2", ...],
     "options": ["option1", "option2", ...]
-  }`
-      }
-    ]
-  }
-}
+  }`,
+      },
+    ],
+  },
+};
 export default prompts;

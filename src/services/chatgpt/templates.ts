@@ -29,11 +29,11 @@ export const wordMatchingTemplate: {
 export const fillInTheBlankTemplate: {
   question: string;
   answer: string;
-  solution: string[]
-  options: string[]
+  solution: string[];
+  options: string[];
 } = {
   question: "",
   answer: "",
   solution: [],
-  options: []
-}
+  options: [],
+};

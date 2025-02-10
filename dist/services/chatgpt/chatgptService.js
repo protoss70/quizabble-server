@@ -147,8 +147,8 @@ function wordMatchQuestion(keywords, target_language, amount) {
         }
     });
 }
-function fillInTheBlankQuestion(criticalQuestions_1, languageLevel_1, amount_1) {
-    return __awaiter(this, arguments, void 0, function* (criticalQuestions, languageLevel, amount, option_amount = 4) {
+function fillInTheBlankQuestion(criticalQuestions, languageLevel, amount) {
+    return __awaiter(this, void 0, void 0, function* () {
         var _a, _b;
         try {
             const response = yield openai.chat.completions.create({
