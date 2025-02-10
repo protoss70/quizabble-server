@@ -3,9 +3,11 @@ import prompts from "./prompts";
 import {
   rearrangementQuestionTemplate,
   summaryAndKeywordsTemplate,
+  wordMatchingTemplate,
 } from "./templates";
 import dotenv from "dotenv";
 import fs from "fs";
+import { shuffleArray } from "../../utils/helper";
 
 dotenv.config();
 
@@ -96,4 +98,49 @@ async function rearrangementQuestion(
   }
 }
 
-export { getSummaryAndKeywords, rearrangementQuestion };
+async function wordMatchQuestion(
+  keywords: string[],
+  target_language: string,
+  amount: number
+) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: prompts.keywordTranslation.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content
+          .replace("{keywords}", JSON.stringify(keywords))
+          .replace("{target_language}", target_language)
+          .replace("{amount}", amount.toString()),
+      })),
+      temperature: 0.5,
+      max_tokens: 200,
+    });
+
+    const rawOutput = response.choices[0]?.message?.content || "";
+    const result = { ...wordMatchingTemplate };
+
+    try {
+      const parsedOutput = JSON.parse(rawOutput);
+      result.originalWords = parsedOutput.originalWords || [];
+      result.translatedWords = shuffleArray(parsedOutput.translatedWords || []);
+    } catch (err) {
+      console.error("Failed to parse JSON response:", err);
+    }
+
+    // Save result to a file
+    const timestamp = new Date()
+      .toLocaleTimeString("en-GB", { hour12: false })
+      .replace(/:/g, "_");
+    const filePath = `./word_match_${timestamp}.txt`;
+    fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
+    console.log(`File saved: ${filePath}`);
+
+    return result;
+  } catch (error) {
+    console.error("Error calling OpenAI:", error);
+    return { error: "Failed to generate word match question." };
+  }
+}
+
+export { getSummaryAndKeywords, rearrangementQuestion, wordMatchQuestion };

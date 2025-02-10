@@ -14,11 +14,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSummaryAndKeywords = getSummaryAndKeywords;
 exports.rearrangementQuestion = rearrangementQuestion;
+exports.wordMatchQuestion = wordMatchQuestion;
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = __importDefault(require("./prompts"));
 const templates_1 = require("./templates");
 const dotenv_1 = __importDefault(require("dotenv"));
 const fs_1 = __importDefault(require("fs"));
+const helper_1 = require("../../utils/helper");
 dotenv_1.default.config();
 const openai = new openai_1.default({
     apiKey: process.env.OPENAI_API_KEY,
@@ -100,6 +102,47 @@ function rearrangementQuestion(criticalQuestions, level) {
         catch (error) {
             console.error("Error calling OpenAI:", error);
             return { error: "Failed to generate critical question answer." };
+        }
+    });
+}
+function wordMatchQuestion(keywords, target_language, amount) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.keywordTranslation.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{keywords}", JSON.stringify(keywords))
+                        .replace("{target_language}", target_language)
+                        .replace("{amount}", amount.toString()),
+                })),
+                temperature: 0.5,
+                max_tokens: 200,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.wordMatchingTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.originalWords = parsedOutput.originalWords || [];
+                result.translatedWords = (0, helper_1.shuffleArray)(parsedOutput.translatedWords || []);
+            }
+            catch (err) {
+                console.error("Failed to parse JSON response:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./word_match_${timestamp}.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate word match question." };
         }
     });
 }

@@ -18,7 +18,7 @@ const prompts: PromptStructure = {
           "You are an AI designed to process transcriptions of online English language classes where only the teacher's voice is recorded. Your task is to extract key insights from the transcription and format them into the following JSON structure:\n\n" +
           "{\n" +
           '  "summary": "A short summary of the lesson (max 4 sentences).",\n' +
-          '  "keywords": ["Up to 10 critical keywords from the lesson."],\n' +
+          '  "keywords": ["Up to 20 critical keywords from the lesson."],\n' +
           '  "questions": ["Up to 10 most important questions the teacher asked."]\n' +
           "}\n\n" +
           "Follow these rules:\n" +
@@ -89,6 +89,39 @@ const prompts: PromptStructure = {
           "answer": "The answer with its words randomly rearranged and separated by commas.",
           "solution": "The correct arrangement of the answer."
         }`,
+      },
+    ],
+  },
+
+  keywordTranslation: {
+    messages: [
+      {
+        role: "system",
+        content: `You are an AI language assistant that helps with keyword translation.
+        Your task is to select a subset of important keywords from the given list and translate them into the target language.
+        
+        Output Requirements:
+        - Return a valid JSON object with the following structure:
+          {
+            "originalWords": ["Selected keywords in the original language"],
+            "translatedWords": ["Corresponding translations in the target language"]
+          }
+        - Ensure that the number of translated words matches the number of original words.
+        - The translations should be accurate and contextually appropriate.
+        - Do not include additional text, explanations, or comments.
+        - **Do not include Markdown formatting, backticks, or any extra text. Only return the JSON object.**`,
+      },
+      {
+        role: "user",
+        content: `Translate a {amount} of the following keywords into {target_language} and return them in the specified JSON format:
+        
+        Keywords: {keywords}
+        
+        - Return a valid JSON object with the following structure:
+          {
+            "originalWords": ["Selected keywords in the original language"],
+            "translatedWords": ["Corresponding translations in the target language"]
+          }`,
       },
     ],
   },

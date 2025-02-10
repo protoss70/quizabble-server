@@ -17,3 +17,12 @@ export const rearrangementQuestionTemplate: {
   answer: "",
   solution: "",
 };
+
+
+export const wordMatchingTemplate: {
+  originalWords: string[],
+  translatedWords: string[]
+} = {
+  originalWords: [],
+  translatedWords: []
+}
