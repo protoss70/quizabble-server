@@ -2,7 +2,8 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./services/database";
 import { getAudioBlob } from "./services/elevenlabs";
-import { uploadFileToS3 } from "./services/s3Uploader";
+import { uploadFileToStorage } from "./services/storage";
+import { transcribeClass } from "./services/transcription";
 import {
   fillInTheBlankQuestion,
   rearrangementQuestion,
@@ -40,8 +41,37 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 
   const mimeType = "audio/mpeg";
   console.log("starting upload");
-  return await uploadFileToS3("tts", "tts/michael", audioBuffer, mimeType);
+  return await uploadFileToStorage("tts", "tts/michael", audioBuffer, mimeType);
 }
+
+// // POST endpoint to start transcription
+// app.post("/transcribe", async (req: Request, res: Response)=> {
+//   const { fileId } = req.body;
+//   console.log(fileId);
+//   // Check if fileId is provided
+//   if (!fileId) {
+//     res.status(400).json({ message: "File ID is required" });
+//     return 
+//   }
+
+//   try {
+//     // Call the transcribeAudio function to start the transcription
+//     const transcription = await transcribeClass(fileId);
+
+//     if (!transcription) {
+//       res.status(500).json({ message: "Error transcribing the audio file." });
+//       return 
+//     }
+
+//     // Respond with the transcription text
+//     res.status(200).json({ message: "Transcription successful", transcription });
+//     return 
+//   } catch (error) {
+//     console.error("Error processing transcription:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//     return 
+//   }
+// });
 
 // app.post("/summarize", async (req: Request, res: Response): Promise<void> => {
 //   try {

@@ -1,5 +1,6 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 
@@ -26,7 +27,7 @@ const s3 = new S3Client({
  * @param mimeType - The MIME type of the file.
  * @returns The URL of the uploaded file if successful, otherwise null.
  */
-export async function uploadFileToS3(
+export async function uploadFileToStorage(
   fileId: string,
   folderPath: string,
   fileBuffer: Buffer,
@@ -47,6 +48,28 @@ export async function uploadFileToS3(
     return `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com/${fileKey}`;
   } catch (error) {
     console.error("Error uploading file to S3:", error);
+    return null;
+  }
+}
+
+/**
+ * Downloads a file from S3 and returns its stream.
+ * @param fileId - The unique file identifier.
+ * @param folderPath - The folder in the S3 bucket where the file is located.
+ * @returns A ReadableStream of the file if successful, otherwise null.
+ */
+export async function getFileFromStorage(fileId: string, folderPath: string): Promise<NodeJS.ReadableStream | null> {
+  const fileKey = path.posix.join(folderPath, fileId);
+  try {
+    const params = { Bucket: S3_BUCKET_NAME, Key: fileKey };
+    const { Body } = await s3.send(new GetObjectCommand(params));
+    if (!Body) {
+      throw new Error("File not found or empty");
+    }
+    console.log(`Successfully obtained stream for ${fileKey}`);
+    return Body as NodeJS.ReadableStream;
+  } catch (error) {
+    console.error("Error downloading file stream from S3:", error);
     return null;
   }
 }
