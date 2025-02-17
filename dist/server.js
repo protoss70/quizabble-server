@@ -79,10 +79,9 @@ function uploadTTSFileToS3(text) {
 //     // "hobbies",
 //     // "favorite artist",
 //     // "songwriting"], "Turkish", 5)
-//     const result = await fillInTheBlankQuestion(
+//     const result = await multipleChoiceQuestion(
 //       [
 //         "Could you please introduce yourself?",
-//         "Which grade are you in?",
 //         "What instruments do you play?",
 //         "Who is your favorite singer?",
 //         "Have you ever been to a concert by your favorite band?",
@@ -91,7 +90,6 @@ function uploadTTSFileToS3(text) {
 //         "Do you want to write your own songs?",
 //       ],
 //       "B2",
-//       2,
 //     );
 //     res.status(200).json(result);
 //   } catch (error) {

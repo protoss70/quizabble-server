@@ -174,5 +174,54 @@ const prompts = {
             },
         ],
     },
+    multipleChoiceQuestionPrompt: {
+        messages: [
+            {
+                role: "system",
+                content: `You are an AI assistant designed to help language learners practice English at various levels.
+        Your task is to choose one of the critical questions provided below and generate four possible answers.
+        Only ONE of the answers should be correct, while the other three should be plausible but incorrect.
+        
+        Output Requirements:
+        - Return exactly one valid JSON object with the following keys:
+          {
+            "question": "The selected critical question.",
+            "options": ["The correct answer.", "Incorrect answer 1.", "Incorrect answer 2.", "Incorrect answer 3."]
+          }
+        - The correct answer must always be the first element in the "options" array.
+        - Do not include any additional text, commentary, or markdown formatting.
+        - Ensure the output is valid JSON with no extra wrapping characters.
+        
+        Instructions:
+        1. Choose one of the critical questions from the list below.
+        2. Write a concise and appropriate answer for the student's language level ({language_level}).
+        3. Generate three incorrect answers that are plausible but clearly wrong.
+        4. Place the correct answer at index 0 of the "options" array and shuffle the incorrect answers into the remaining slots.
+        5. Output a valid JSON object exactly following the specified structure.
+        
+        Example Output:
+        {
+          "question": "What is the capital of France?",
+          "options": ["Paris", "London", "Berlin", "Madrid"]
+        }`,
+            },
+            {
+                role: "user",
+                content: `Please choose one of the critical questions listed below and provide four possible answers.
+        Only ONE answer should be correct, while the other three should be incorrect but plausible.
+        
+        Critical Questions:
+        {critical_questions}
+        
+        Language Level: {language_level}
+        
+        Return the output as a valid JSON object following this exact structure:
+        {
+          "question": "The selected critical question.",
+          "options": ["The correct answer.", "Incorrect answer 1.", "Incorrect answer 2.", "Incorrect answer 3."]
+        }`,
+            },
+        ],
+    },
 };
 exports.default = prompts;

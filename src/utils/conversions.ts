@@ -13,4 +13,3 @@ export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
     stream.on("error", reject);
   });
 }
-

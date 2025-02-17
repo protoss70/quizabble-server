@@ -6,6 +6,7 @@ import { uploadFileToStorage } from "./services/storage";
 import { transcribeClass } from "./services/transcription";
 import {
   fillInTheBlankQuestion,
+  multipleChoiceQuestion,
   rearrangementQuestion,
   wordMatchQuestion,
 } from "./services/chatgpt/chatgptService";
@@ -51,7 +52,7 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 //   // Check if fileId is provided
 //   if (!fileId) {
 //     res.status(400).json({ message: "File ID is required" });
-//     return 
+//     return
 //   }
 
 //   try {
@@ -60,16 +61,16 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 
 //     if (!transcription) {
 //       res.status(500).json({ message: "Error transcribing the audio file." });
-//       return 
+//       return
 //     }
 
 //     // Respond with the transcription text
 //     res.status(200).json({ message: "Transcription successful", transcription });
-//     return 
+//     return
 //   } catch (error) {
 //     console.error("Error processing transcription:", error);
 //     res.status(500).json({ message: "Internal server error" });
-//     return 
+//     return
 //   }
 // });
 
@@ -86,10 +87,9 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 //     // "favorite artist",
 //     // "songwriting"], "Turkish", 5)
 
-//     const result = await fillInTheBlankQuestion(
+//     const result = await multipleChoiceQuestion(
 //       [
 //         "Could you please introduce yourself?",
-//         "Which grade are you in?",
 //         "What instruments do you play?",
 //         "Who is your favorite singer?",
 //         "Have you ever been to a concert by your favorite band?",
@@ -98,7 +98,6 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 //         "Do you want to write your own songs?",
 //       ],
 //       "B2",
-//       2,
 //     );
 //     res.status(200).json(result);
 //   } catch (error) {

@@ -37,3 +37,11 @@ export const fillInTheBlankTemplate: {
   solution: [],
   options: [],
 };
+
+export const multipleChoiceQuestionTemplate: {
+  question: string;
+  options: string[];
+} = {
+  question: "",
+  options: []
+}

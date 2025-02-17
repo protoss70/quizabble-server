@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
@@ -58,7 +62,10 @@ export async function uploadFileToStorage(
  * @param folderPath - The folder in the S3 bucket where the file is located.
  * @returns A ReadableStream of the file if successful, otherwise null.
  */
-export async function getFileFromStorage(fileId: string, folderPath: string): Promise<NodeJS.ReadableStream | null> {
+export async function getFileFromStorage(
+  fileId: string,
+  folderPath: string,
+): Promise<NodeJS.ReadableStream | null> {
   const fileKey = path.posix.join(folderPath, fileId);
   try {
     const params = { Bucket: S3_BUCKET_NAME, Key: fileKey };

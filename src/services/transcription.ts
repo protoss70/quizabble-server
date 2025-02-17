@@ -23,7 +23,7 @@ export async function transcribeClass(fileId: string): Promise<string | null> {
   const fileBuffer = await streamToBuffer(fileStream);
 
   // Create a file-like object from the buffer
-  const file = new File([fileBuffer], fileId, { type: "audio/mpeg" });  // Replace 'audio/mpeg' with the actual mime type
+  const file = new File([fileBuffer], fileId, { type: "audio/mpeg" }); // Replace 'audio/mpeg' with the actual mime type
 
   console.log("Creating transcription");
   try {
@@ -41,7 +41,12 @@ export async function transcribeClass(fileId: string): Promise<string | null> {
     const transcriptionBuffer = Buffer.from(transcription, "utf-8");
 
     console.log("Uploading transcription to S3");
-    const uploadedFileUrl = await uploadFileToStorage(fileId, "transcriptions", transcriptionBuffer, "text/plain");
+    const uploadedFileUrl = await uploadFileToStorage(
+      fileId,
+      "transcriptions",
+      transcriptionBuffer,
+      "text/plain",
+    );
 
     console.log("Transcription saved to S3:", uploadedFileUrl);
     return transcription;
@@ -50,4 +55,3 @@ export async function transcribeClass(fileId: string): Promise<string | null> {
     return null;
   }
 }
-

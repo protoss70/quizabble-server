@@ -16,6 +16,7 @@ exports.getSummaryAndKeywords = getSummaryAndKeywords;
 exports.rearrangementQuestion = rearrangementQuestion;
 exports.wordMatchQuestion = wordMatchQuestion;
 exports.fillInTheBlankQuestion = fillInTheBlankQuestion;
+exports.multipleChoiceQuestion = multipleChoiceQuestion;
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = __importDefault(require("./prompts"));
 const templates_1 = require("./templates");
@@ -188,6 +189,46 @@ function fillInTheBlankQuestion(criticalQuestions, languageLevel, amount) {
         catch (error) {
             console.error("Error calling OpenAI:", error);
             return { error: "Failed to generate fill-in-the-blank question." };
+        }
+    });
+}
+function multipleChoiceQuestion(criticalQuestions, level) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.multipleChoiceQuestionPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{critical_questions}", criticalQuestions.join(", "))
+                        .replace("{language_level}", level),
+                })),
+                temperature: 0.5,
+                max_tokens: 300,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.multipleChoiceQuestionTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.options = (0, helper_1.shuffleArray)(parsedOutput.options || []);
+            }
+            catch (err) {
+                console.error("Failed to parse output:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./${timestamp}_multiple_choice_question.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate multiple choice question." };
         }
     });
 }
