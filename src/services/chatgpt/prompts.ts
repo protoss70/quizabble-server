@@ -216,7 +216,7 @@ const prompts: PromptStructure = {
         {
           "question": "What is the capital of France?",
           "options": ["Paris", "London", "Berlin", "Madrid"]
-        }`
+        }`,
       },
       {
         role: "user",
@@ -232,9 +232,9 @@ const prompts: PromptStructure = {
         {
           "question": "The selected critical question.",
           "options": ["The correct answer.", "Incorrect answer 1.", "Incorrect answer 2.", "Incorrect answer 3."]
-        }`
-      }
-    ]
-  }
+        }`,
+      },
+    ],
+  },
 };
 export default prompts;

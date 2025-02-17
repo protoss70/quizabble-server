@@ -43,5 +43,5 @@ export const multipleChoiceQuestionTemplate: {
   options: string[];
 } = {
   question: "",
-  options: []
-}
+  options: [],
+};

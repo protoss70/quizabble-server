@@ -236,11 +236,10 @@ async function multipleChoiceQuestion(
   }
 }
 
-
 export {
   getSummaryAndKeywords,
   rearrangementQuestion,
   wordMatchQuestion,
   fillInTheBlankQuestion,
-  multipleChoiceQuestion
+  multipleChoiceQuestion,
 };
