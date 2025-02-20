@@ -12,10 +12,12 @@ export const rearrangementQuestionTemplate: {
   question: string;
   answer: string;
   solution: string;
+  options: string[];
 } = {
   question: "",
   answer: "",
   solution: "",
+  options: []
 };
 
 export const wordMatchingTemplate: {

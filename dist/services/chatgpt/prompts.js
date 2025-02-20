@@ -30,53 +30,58 @@ const prompts = {
         messages: [
             {
                 role: "system",
-                content: `You are an AI assistant designed to help language learners practice English at various levels.
-      Your task is to select one of the critical questions provided below and generate an answer appropriate for the student's language level.
-      After generating the answer, randomly rearrange the words in the answer and separate each word with a comma.
-      
-      Output Requirements:
-      - Return exactly one valid JSON object with the following keys:
-        {
-          "question": "The selected critical question.",
-          "answer": "The answer with its words randomly rearranged and separated by commas.",
-          "solution": "The correct arrangement of the answer."
-        }
-      - Do not include any additional text, commentary, or markdown formatting.
-      - Ensure the output is valid JSON with no extra wrapping characters.
-      
-      Instructions:
-      1. Choose one of the critical questions listed below.
-      2. Write a concise answer appropriate for the given student's language level.
-      3. Randomly rearrange the words in your answer, separating each word with a comma.
-      4. Output a JSON object exactly matching the structure above.
-      
-      Examples:
-      Example 1 (Correct):
-      Question: How old are you?
-      Answer: sixteen, years, am, old, I
-      Solution: I am sixteen years old
-      
-      Example 2 (Incorrect):
-      Question: What are your hobbies?
-      Answer: playing, I, piano, like, and, skate, boarding
-      Solution: I like playing piano and skateboarding
-      Reason: This answer is ambiguous because it can be interpreted in two correct ways: "I like playing piano and skateboarding" or "I like skateboarding and playing piano". Do not provide an answer that allows multiple valid solutions.`,
+                content: `You are an AI assistant designed to help language learners practice English at various levels. Your task is to select one of the critical questions provided below and generate an answer appropriate for the student's language level.
+        After generating the answer, randomly rearrange the words in the answer and separate each word with a comma.
+        Additionally, generate a new parameter \"options\", which is an array of extra words that are not necessary for the correct solution.
+        The number of extra words in the \"options\" array should be equal to the number of words in the correct solution, so that the total pool of words (from \"answer\" and \"options\") is twice the number of words in the solution.
+        
+        Output Requirements:\n- Return exactly one valid JSON object with the following keys:
+          {
+            \"question\": \"The selected critical question.\",
+                \"answer\": \"The answer with its words randomly rearranged and separated by commas.\",
+                    \"solution\": \"The correct arrangement of the answer.\",
+                        \"options\": [\"An array of extra words\"]
+                          }
+                        - Do not include any additional text, commentary, or markdown formatting.
+                        - Ensure the output is valid JSON with no extra wrapping characters.
+                        
+                        Instructions:
+                        1. Choose one of the critical questions listed below.
+                        2. Write a concise answer appropriate for the given student's language level.
+                        3. Randomly rearrange the words in your answer, separating each word with a comma.
+                        4. Generate an array \"options\" containing extra words that are not part of the correct answer. The number of extra words should equal the number of words in the solution.
+                        5. Output a JSON object exactly matching the structure above.
+                        
+                        Examples:\nExample 1 (Correct):
+                        Question: How old are you?
+                        Answer: sixteen, years, am, old, I
+                        Solution: I am sixteen years old
+                        Options: [\"do\", \"have\", \"been\", \"my\", \"today\"]
+                        (Note: The number of extra words in Options is equal to the number of words in the solution: 5 words.)
+                        
+                        Example 2:
+                        Question: What do you study?
+                        Answer: English, study, I
+                        Solution: I study English
+                        Options: [\"am\", \"are\", \"living\"]
+                        (Note: The number of extra words in Options is equal to the number of words in the solution: 3 words.)`,
             },
             {
                 role: "user",
                 content: `Please choose one of the critical questions listed below and provide an answer at the student's language level ({language_level}).
-      Then, randomly rearrange the words in your answer and separate each word with a comma.
-      
-      Critical Questions:
-      {critical_questions}
-      
-      Return the output as a valid JSON object following the exact structure:
-      - Return exactly one valid JSON object with the following keys:
+        Then, randomly rearrange the words in your answer and separate each word with a comma.
+        Additionally, generate an \"options\" array containing extra words that are not necessary for the correct solution. The number of extra words should equal the number of words in the solution, so that the total number of words (answer plus options) is twice the number of words in the solution.
+        
+        Critical Questions:
+        {critical_questions}
+        
+        Return the output as a valid JSON object following the exact structure:
         {
-          "question": "The selected critical question.",
-          "answer": "The answer with its words randomly rearranged and separated by commas.",
-          "solution": "The correct arrangement of the answer."
-        }`,
+          \"question\": \"The selected critical question.\",
+            \"answer\": \"The answer with its words randomly rearranged and separated by commas.\",
+              \"solution\": \"The correct arrangement of the answer.\",
+                \"options\": [\"An array of extra words\"]
+                }`,
             },
         ],
     },

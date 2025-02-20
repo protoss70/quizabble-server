@@ -8,6 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __asyncValues = (this && this.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -23,24 +30,56 @@ const templates_1 = require("./templates");
 const dotenv_1 = __importDefault(require("dotenv"));
 const fs_1 = __importDefault(require("fs"));
 const helper_1 = require("../../utils/helper");
+const storage_1 = require("../storage");
 dotenv_1.default.config();
 const openai = new openai_1.default({
     apiKey: process.env.OPENAI_API_KEY,
 });
-function getSummaryAndKeywords(text) {
+/**
+ * Downloads the file content from S3, then generates a summary and keywords.
+ * @param fileId - The unique file identifier.
+ * @returns The result containing summary, keywords, and questions, or an error message.
+ */
+function getSummaryAndKeywords(fileId) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a, e_1, _b, _c;
+        var _d, _e;
         try {
+            // Fetch file content from S3
+            const fileStream = yield (0, storage_1.getFileFromStorage)(fileId, "transcriptions");
+            if (!fileStream) {
+                throw new Error("File not found in S3.");
+            }
+            // Read the file stream and convert it to text
+            const chunks = [];
+            try {
+                for (var _f = true, fileStream_1 = __asyncValues(fileStream), fileStream_1_1; fileStream_1_1 = yield fileStream_1.next(), _a = fileStream_1_1.done, !_a; _f = true) {
+                    _c = fileStream_1_1.value;
+                    _f = false;
+                    const chunk = _c;
+                    // Ensure each chunk is a Buffer, convert if necessary
+                    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (!_f && !_a && (_b = fileStream_1.return)) yield _b.call(fileStream_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            const fileText = Buffer.concat(chunks).toString("utf-8");
+            // Call OpenAI to generate summary and keywords
             const response = yield openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: prompts_1.default.summaryAndKeywords.messages.map((msg) => ({
                     role: msg.role,
-                    content: msg.content.replace("{text}", text),
+                    content: msg.content.replace("{text}", fileText),
                 })),
                 temperature: 0.5,
                 max_tokens: 300,
             });
-            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const rawOutput = ((_e = (_d = response.choices[0]) === null || _d === void 0 ? void 0 : _d.message) === null || _e === void 0 ? void 0 : _e.content) || "";
             const result = Object.assign({}, templates_1.summaryAndKeywordsTemplate);
             try {
                 const parsedOutput = JSON.parse(rawOutput);
@@ -88,6 +127,7 @@ function rearrangementQuestion(criticalQuestions, level) {
                 result.question = parsedOutput.question || "";
                 result.answer = parsedOutput.answer || "";
                 result.solution = parsedOutput.solution || "";
+                result.options = parsedOutput.options || [];
             }
             catch (err) {
                 console.error("Failed to parse output:", err);
@@ -113,7 +153,7 @@ function wordMatchQuestion(keywords, target_language, amount) {
         try {
             const response = yield openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: prompts_1.default.keywordTranslation.messages.map((msg) => ({
+                messages: prompts_1.default.keywordTranslationQuestionPrompt.messages.map((msg) => ({
                     role: msg.role,
                     content: msg.content
                         .replace("{keywords}", JSON.stringify(keywords))

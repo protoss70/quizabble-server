@@ -18,6 +18,9 @@ npm-debug.log*
 .yarn-cache/
 *.log
 
+# Pem files for local https
+*.pem
+
 # OS-specific files
 .DS_Store
 Thumbs.db

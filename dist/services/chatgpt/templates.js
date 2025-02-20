@@ -10,6 +10,7 @@ exports.rearrangementQuestionTemplate = {
     question: "",
     answer: "",
     solution: "",
+    options: [],
 };
 exports.wordMatchingTemplate = {
     originalWords: [],

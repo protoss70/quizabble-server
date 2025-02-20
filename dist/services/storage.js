@@ -14,10 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadFileToStorage = uploadFileToStorage;
 exports.getFileFromStorage = getFileFromStorage;
+exports.streamToS3 = streamToS3;
+exports.startStreamingUploadToS3 = startStreamingUploadToS3;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const uuid_1 = require("uuid");
 const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const lib_storage_1 = require("@aws-sdk/lib-storage");
+const stream_1 = require("stream");
 dotenv_1.default.config();
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const S3_REGION = process.env.S3_REGION;
@@ -80,5 +84,79 @@ function getFileFromStorage(fileId, folderPath) {
             console.error("Error downloading file stream from S3:", error);
             return null;
         }
+    });
+}
+/**
+ * Converts a Web ReadableStream to a Node.js Readable Stream.
+ */
+function webStreamToNodeStream(webStream) {
+    const reader = webStream.getReader();
+    return new stream_1.Readable({
+        read() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const { done, value } = yield reader.read();
+                if (done) {
+                    this.push(null);
+                }
+                else {
+                    this.push(Buffer.from(value));
+                }
+            });
+        },
+    });
+}
+/**
+ * Streams audio data directly to S3.
+ * @param stream - The readable stream containing audio data.
+ * @param contentType - The MIME type of the audio stream.
+ * @returns The URL of the uploaded file if successful, otherwise null.
+ */
+function streamToS3(stream, contentType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const timestamp = Date.now();
+            const fileExtension = contentType.split("/")[1] || "wav";
+            const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
+            console.log(`Streaming upload started for ${fileKey}`);
+            const upload = new lib_storage_1.Upload({
+                client: s3,
+                params: {
+                    Bucket: S3_BUCKET_NAME,
+                    Key: fileKey,
+                    Body: stream, // Ensure this is a proper Node.js Readable stream
+                    ContentType: contentType,
+                },
+            });
+            yield upload.done(); // Wait for upload completion
+            return `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com/${fileKey}`;
+        }
+        catch (error) {
+            console.error("Error streaming file to S3:", error);
+            return null;
+        }
+    });
+}
+/**
+ * Starts a streaming upload to S3 using a provided readable stream.
+ *
+ * @param passThrough - The Node.js Readable stream (e.g. a PassThrough stream)
+ * @param contentType - The MIME type of the audio data (e.g., "audio/webm")
+ * @param fileKey - The unique file key under which the data will be stored in S3
+ * @returns The URL of the uploaded file if successful.
+ */
+function startStreamingUploadToS3(passThrough, contentType, fileKey) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const upload = new lib_storage_1.Upload({
+            client: s3,
+            params: {
+                Bucket: S3_BUCKET_NAME,
+                Key: fileKey,
+                Body: passThrough,
+                ContentType: contentType,
+            },
+            // Optionally adjust partSize or concurrency here
+        });
+        yield upload.done();
+        return `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com/${fileKey}`;
     });
 }

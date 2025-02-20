@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.744.0",
+    "@aws-sdk/lib-storage": "^3.750.0",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "elevenlabs": "^1.50.5",
@@ -22,12 +23,15 @@
     "firebase-admin": "^13.0.2",
     "mongoose": "^8.9.7",
     "openai": "^4.83.0",
+    "socket.io": "^4.8.1",
+    "spdy": "^4.0.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^22.13.1",
+    "@types/spdy": "^3.4.9",
     "husky": "^8.0.0",
     "nodemon": "^3.1.9",
     "prettier": "^3.5.0",
