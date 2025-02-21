@@ -1,9 +1,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./services/database";
-import {
-  streamToS3,
-} from "./services/storage";
+import { streamToS3 } from "./services/storage";
 import spdy from "spdy";
 import fs from "fs";
 
@@ -24,7 +22,7 @@ interface VoiceSettings {
   speaker_boost?: boolean;
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8081;
 
 // const server = spdy.createServer(
 //   {
@@ -198,25 +196,32 @@ const PORT = process.env.PORT || 5000;
 // });
 
 // Fallback HTTP POST endpoint (if needed)
-app.post("/upload-audio", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const contentType = req.headers["content-type"];
-    if (!contentType || !contentType.startsWith("audio/")) {
-      res.status(400).json({ error: "Invalid content type. Must be an audio stream." });
-      return;
+app.post(
+  "/upload-audio",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const contentType = req.headers["content-type"];
+      if (!contentType || !contentType.startsWith("audio/")) {
+        res
+          .status(400)
+          .json({ error: "Invalid content type. Must be an audio stream." });
+        return;
+      }
+      console.log("Receiving audio stream via HTTP POST...");
+      const uploadedUrl = await streamToS3(req, contentType);
+      if (!uploadedUrl) {
+        res.status(500).json({ error: "Failed to upload audio to S3" });
+        return;
+      }
+      res
+        .status(200)
+        .json({ message: "Audio uploaded successfully", url: uploadedUrl });
+    } catch (error) {
+      console.error("Error uploading audio stream:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-    console.log("Receiving audio stream via HTTP POST...");
-    const uploadedUrl = await streamToS3(req, contentType);
-    if (!uploadedUrl) {
-      res.status(500).json({ error: "Failed to upload audio to S3" });
-      return;
-    }
-    res.status(200).json({ message: "Audio uploaded successfully", url: uploadedUrl });
-  } catch (error) {
-    console.error("Error uploading audio stream:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+  },
+);
 
 // Start the server.
 app.listen(PORT, () => {

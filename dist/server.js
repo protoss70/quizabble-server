@@ -23,7 +23,7 @@ app.use(express_1.default.json());
 app.get("/", (req, res) => {
     res.send("Server running");
 });
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8081;
 // const server = spdy.createServer(
 //   {
 //     key: fs.readFileSync("server-key.pem"),
