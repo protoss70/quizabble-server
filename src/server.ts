@@ -1,20 +1,11 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./services/database";
-import { getAudioBlob } from "./services/elevenlabs";
-import { uploadFileToStorage, streamToS3, startStreamingUploadToS3 } from "./services/storage";
-import { transcribeClass } from "./services/transcription";
-import { Server } from "socket.io";
-import { PassThrough, Readable } from "stream";
-import spdy from "spdy";
-import fs from "fs"
 import {
-  fillInTheBlankQuestion,
-  getSummaryAndKeywords,
-  multipleChoiceQuestion,
-  rearrangementQuestion,
-  wordMatchQuestion,
-} from "./services/chatgpt/chatgptService";
+  streamToS3,
+} from "./services/storage";
+import spdy from "spdy";
+import fs from "fs";
 
 dotenv.config();
 const app = express();
@@ -35,13 +26,13 @@ interface VoiceSettings {
 
 const PORT = process.env.PORT || 5000;
 
-const server = spdy.createServer(
-  {
-    key: fs.readFileSync("server-key.pem"),
-    cert: fs.readFileSync("server.pem"),
-  },
-  app
-);
+// const server = spdy.createServer(
+//   {
+//     key: fs.readFileSync("server-key.pem"),
+//     cert: fs.readFileSync("server.pem"),
+//   },
+//   app,
+// );
 
 /**
  * Generates an audio buffer from text using the ElevenLabs TTS API and uploads it to S3.
@@ -49,16 +40,16 @@ const server = spdy.createServer(
  * @param text - The text to be converted to speech.
  * @returns The URL of the uploaded audio file if successful.
  */
-export async function uploadTTSFileToS3(text: string): Promise<string | null> {
-  const audioBuffer = await getAudioBlob(text, "michael");
-  if (!audioBuffer) {
-    throw new Error("Failed to generate audio buffer");
-  }
+// export async function uploadTTSFileToS3(text: string): Promise<string | null> {
+//   const audioBuffer = await getAudioBlob(text, "michael");
+//   if (!audioBuffer) {
+//     throw new Error("Failed to generate audio buffer");
+//   }
 
-  const mimeType = "audio/mpeg";
-  console.log("starting upload");
-  return await uploadFileToStorage("tts", "tts/michael", audioBuffer, mimeType);
-}
+//   const mimeType = "audio/mpeg";
+//   console.log("starting upload");
+//   return await uploadFileToStorage("tts", "tts/michael", audioBuffer, mimeType);
+// }
 
 // app.post("/tts", async (req: Request, res: Response) => {
 //   const {text} = req.body
@@ -108,7 +99,7 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 //     // "university",
 //     // "volleyball",
 //     // "future",
-//     // "experiences"], 
+//     // "experiences"],
 //     // "Turkish", 5)
 //     const result = await getSummaryAndKeywords("recording_nosilence_2_150.mp3-4127e60a-4cc6-4c86-86f5-501a17218f57");
 //     // const result = await rearrangementQuestion(
@@ -206,28 +197,28 @@ export async function uploadTTSFileToS3(text: string): Promise<string | null> {
 //   });
 // });
 
-// // Fallback HTTP POST endpoint (if needed)
-// app.post("/upload-audio", async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const contentType = req.headers["content-type"];
-//     if (!contentType || !contentType.startsWith("audio/")) {
-//       res.status(400).json({ error: "Invalid content type. Must be an audio stream." });
-//       return;
-//     }
-//     console.log("Receiving audio stream via HTTP POST...");
-//     const uploadedUrl = await streamToS3(req, contentType);
-//     if (!uploadedUrl) {
-//       res.status(500).json({ error: "Failed to upload audio to S3" });
-//       return;
-//     }
-//     res.status(200).json({ message: "Audio uploaded successfully", url: uploadedUrl });
-//   } catch (error) {
-//     console.error("Error uploading audio stream:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+// Fallback HTTP POST endpoint (if needed)
+app.post("/upload-audio", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const contentType = req.headers["content-type"];
+    if (!contentType || !contentType.startsWith("audio/")) {
+      res.status(400).json({ error: "Invalid content type. Must be an audio stream." });
+      return;
+    }
+    console.log("Receiving audio stream via HTTP POST...");
+    const uploadedUrl = await streamToS3(req, contentType);
+    if (!uploadedUrl) {
+      res.status(500).json({ error: "Failed to upload audio to S3" });
+      return;
+    }
+    res.status(200).json({ message: "Audio uploaded successfully", url: uploadedUrl });
+  } catch (error) {
+    console.error("Error uploading audio stream:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // Start the server.
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`HTTP/2 Server is running on port ${PORT}`);
 });

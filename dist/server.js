@@ -12,14 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadTTSFileToS3 = uploadTTSFileToS3;
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const database_1 = require("./services/database");
-const elevenlabs_1 = require("./services/elevenlabs");
 const storage_1 = require("./services/storage");
-const spdy_1 = __importDefault(require("spdy"));
-const fs_1 = __importDefault(require("fs"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -28,27 +24,28 @@ app.get("/", (req, res) => {
     res.send("Server running");
 });
 const PORT = process.env.PORT || 5000;
-const server = spdy_1.default.createServer({
-    key: fs_1.default.readFileSync("server-key.pem"),
-    cert: fs_1.default.readFileSync("server.pem"),
-}, app);
+// const server = spdy.createServer(
+//   {
+//     key: fs.readFileSync("server-key.pem"),
+//     cert: fs.readFileSync("server.pem"),
+//   },
+//   app,
+// );
 /**
  * Generates an audio buffer from text using the ElevenLabs TTS API and uploads it to S3.
  *
  * @param text - The text to be converted to speech.
  * @returns The URL of the uploaded audio file if successful.
  */
-function uploadTTSFileToS3(text) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const audioBuffer = yield (0, elevenlabs_1.getAudioBlob)(text, "michael");
-        if (!audioBuffer) {
-            throw new Error("Failed to generate audio buffer");
-        }
-        const mimeType = "audio/mpeg";
-        console.log("starting upload");
-        return yield (0, storage_1.uploadFileToStorage)("tts", "tts/michael", audioBuffer, mimeType);
-    });
-}
+// export async function uploadTTSFileToS3(text: string): Promise<string | null> {
+//   const audioBuffer = await getAudioBlob(text, "michael");
+//   if (!audioBuffer) {
+//     throw new Error("Failed to generate audio buffer");
+//   }
+//   const mimeType = "audio/mpeg";
+//   console.log("starting upload");
+//   return await uploadFileToStorage("tts", "tts/michael", audioBuffer, mimeType);
+// }
 // app.post("/tts", async (req: Request, res: Response) => {
 //   const {text} = req.body
 //   const result = await uploadTTSFileToS3(text);
@@ -179,27 +176,32 @@ function uploadTTSFileToS3(text) {
 //     }
 //   });
 // });
-// // Fallback HTTP POST endpoint (if needed)
-// app.post("/upload-audio", async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const contentType = req.headers["content-type"];
-//     if (!contentType || !contentType.startsWith("audio/")) {
-//       res.status(400).json({ error: "Invalid content type. Must be an audio stream." });
-//       return;
-//     }
-//     console.log("Receiving audio stream via HTTP POST...");
-//     const uploadedUrl = await streamToS3(req, contentType);
-//     if (!uploadedUrl) {
-//       res.status(500).json({ error: "Failed to upload audio to S3" });
-//       return;
-//     }
-//     res.status(200).json({ message: "Audio uploaded successfully", url: uploadedUrl });
-//   } catch (error) {
-//     console.error("Error uploading audio stream:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+// Fallback HTTP POST endpoint (if needed)
+app.post("/upload-audio", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const contentType = req.headers["content-type"];
+        if (!contentType || !contentType.startsWith("audio/")) {
+            res
+                .status(400)
+                .json({ error: "Invalid content type. Must be an audio stream." });
+            return;
+        }
+        console.log("Receiving audio stream via HTTP POST...");
+        const uploadedUrl = yield (0, storage_1.streamToS3)(req, contentType);
+        if (!uploadedUrl) {
+            res.status(500).json({ error: "Failed to upload audio to S3" });
+            return;
+        }
+        res
+            .status(200)
+            .json({ message: "Audio uploaded successfully", url: uploadedUrl });
+    }
+    catch (error) {
+        console.error("Error uploading audio stream:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}));
 // Start the server.
-server.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`HTTP/2 Server is running on port ${PORT}`);
 });

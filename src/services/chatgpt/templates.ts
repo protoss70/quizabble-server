@@ -17,7 +17,7 @@ export const rearrangementQuestionTemplate: {
   question: "",
   answer: "",
   solution: "",
-  options: []
+  options: [],
 };
 
 export const wordMatchingTemplate: {

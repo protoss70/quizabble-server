@@ -26,10 +26,10 @@ const openai = new OpenAI({
 async function getSummaryAndKeywords(fileId: string) {
   try {
     // Fetch file content from S3
-    const fileStream = await getFileFromStorage(fileId, 'transcriptions');
-    
+    const fileStream = await getFileFromStorage(fileId, "transcriptions");
+
     if (!fileStream) {
-      throw new Error('File not found in S3.');
+      throw new Error("File not found in S3.");
     }
 
     // Read the file stream and convert it to text
@@ -38,11 +38,11 @@ async function getSummaryAndKeywords(fileId: string) {
       // Ensure each chunk is a Buffer, convert if necessary
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
-    const fileText = Buffer.concat(chunks).toString('utf-8');
+    const fileText = Buffer.concat(chunks).toString("utf-8");
 
     // Call OpenAI to generate summary and keywords
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: prompts.summaryAndKeywords.messages.map((msg) => ({
         role: msg.role,
         content: msg.content.replace("{text}", fileText),
@@ -131,13 +131,15 @@ async function wordMatchQuestion(
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: prompts.keywordTranslationQuestionPrompt.messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content
-          .replace("{keywords}", JSON.stringify(keywords))
-          .replace("{target_language}", target_language)
-          .replace("{amount}", amount.toString()),
-      })),
+      messages: prompts.keywordTranslationQuestionPrompt.messages.map(
+        (msg) => ({
+          role: msg.role,
+          content: msg.content
+            .replace("{keywords}", JSON.stringify(keywords))
+            .replace("{target_language}", target_language)
+            .replace("{amount}", amount.toString()),
+        }),
+      ),
       temperature: 0.5,
       max_tokens: 200,
     });

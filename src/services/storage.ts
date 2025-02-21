@@ -86,7 +86,9 @@ export async function getFileFromStorage(
 /**
  * Converts a Web ReadableStream to a Node.js Readable Stream.
  */
-function webStreamToNodeStream(webStream: ReadableStream<Uint8Array>): Readable {
+function webStreamToNodeStream(
+  webStream: ReadableStream<Uint8Array>,
+): Readable {
   const reader = webStream.getReader();
   return new Readable({
     async read() {
@@ -108,7 +110,7 @@ function webStreamToNodeStream(webStream: ReadableStream<Uint8Array>): Readable 
  */
 export async function streamToS3(
   stream: NodeJS.ReadableStream,
-  contentType: string
+  contentType: string,
 ): Promise<string | null> {
   try {
     const timestamp = Date.now();
@@ -136,7 +138,6 @@ export async function streamToS3(
   }
 }
 
-
 /**
  * Starts a streaming upload to S3 using a provided readable stream.
  *
@@ -148,7 +149,7 @@ export async function streamToS3(
 export async function startStreamingUploadToS3(
   passThrough: NodeJS.ReadableStream,
   contentType: string,
-  fileKey: string
+  fileKey: string,
 ): Promise<string> {
   const upload = new Upload({
     client: s3,
