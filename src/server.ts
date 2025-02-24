@@ -27,7 +27,7 @@ if (process.env.ENVIRONMENT === "local") {
       key: fs.readFileSync("./server-key.pem"),
       cert: fs.readFileSync("./server.pem"),
     },
-    app
+    app,
   );
   console.log("Running with HTTPS locally");
 } else {
@@ -53,7 +53,9 @@ io.on("connection", (socket) => {
 
     const passThrough = new PassThrough();
     socket.data = { passThrough, fileKey, contentType, uploadTriggered: false };
-    console.log(`Started S3 streaming upload for socket ${socket.id} with key ${fileKey}`);
+    console.log(
+      `Started S3 streaming upload for socket ${socket.id} with key ${fileKey}`,
+    );
   });
 
   socket.on("audio-chunk", (chunk: ArrayBuffer | Buffer) => {
@@ -66,11 +68,20 @@ io.on("connection", (socket) => {
 
   socket.on("stop-audio", async () => {
     const data = socket.data;
-    if (data && data.passThrough && data.fileKey && data.contentType && !data.uploadTriggered) {
+    if (
+      data &&
+      data.passThrough &&
+      data.fileKey &&
+      data.contentType &&
+      !data.uploadTriggered
+    ) {
       data.passThrough.end();
       console.log("Audio stream ended for socket:", socket.id);
       try {
-        const uploadedUrl = await streamToS3(data.passThrough, data.contentType);
+        const uploadedUrl = await streamToS3(
+          data.passThrough,
+          data.contentType,
+        );
         socket.emit("upload-success", { url: uploadedUrl });
       } catch (err) {
         console.error("Error uploading audio stream:", err);
@@ -87,7 +98,10 @@ io.on("connection", (socket) => {
       data.passThrough.end();
       console.log("Finalizing upload after disconnect for socket:", socket.id);
       try {
-        const uploadedUrl = await streamToS3(data.passThrough, data.contentType);
+        const uploadedUrl = await streamToS3(
+          data.passThrough,
+          data.contentType,
+        );
         console.log("Upload successful on disconnect, URL:", uploadedUrl);
       } catch (err) {
         console.error("Error uploading audio stream on disconnect:", err);

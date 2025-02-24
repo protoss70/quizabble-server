@@ -7,12 +7,12 @@ exports.streamToBuffer = streamToBuffer;
  * @returns A Promise that resolves to a Buffer.
  */
 function streamToBuffer(stream) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    stream.on("data", (chunk) => {
-      chunks.push(chunk);
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on("data", (chunk) => {
+            chunks.push(chunk);
+        });
+        stream.on("end", () => resolve(Buffer.concat(chunks)));
+        stream.on("error", reject);
     });
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
-  });
 }

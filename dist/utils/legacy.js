@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Generates an audio buffer from text using the ElevenLabs TTS API and uploads it to S3.
  *
@@ -9,19 +10,15 @@
 //   if (!audioBuffer) {
 //     throw new Error("Failed to generate audio buffer");
 //   }
-
 //   const mimeType = "audio/mpeg";
 //   console.log("starting upload");
 //   return await uploadFileToStorage("tts", "tts/michael", audioBuffer, mimeType);
 // }
-
 // app.post("/tts", async (req: Request, res: Response) => {
 //   const {text} = req.body
 //   const result = await uploadTTSFileToS3(text);
-
 //   res.status(200).json({ message: "TTS successful", result });
 // })
-
 // // POST endpoint to start transcription
 // app.post("/transcribe", async (req: Request, res: Response)=> {
 //   const { fileId } = req.body;
@@ -31,16 +28,13 @@
 //     res.status(400).json({ message: "File ID is required" });
 //     return
 //   }
-
 //   try {
 //     // Call the transcribeAudio function to start the transcription
 //     const transcription = await transcribeClass(fileId);
-
 //     if (!transcription) {
 //       res.status(500).json({ message: "Error transcribing the audio file." });
 //       return
 //     }
-
 //     // Respond with the transcription text
 //     res.status(200).json({ message: "Transcription successful", transcription });
 //     return
@@ -50,7 +44,6 @@
 //     return
 //   }
 // });
-
 // app.post("/summarize", async (req: Request, res: Response): Promise<void> => {
 //   try {
 //     // const result = await wordMatchQuestion([
