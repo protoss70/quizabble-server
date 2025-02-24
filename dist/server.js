@@ -1,16 +1,42 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+var __awaiter =
+  (this && this.__awaiter) ||
+  function (thisArg, _arguments, P, generator) {
+    function adopt(value) {
+      return value instanceof P
+        ? value
+        : new P(function (resolve) {
+            resolve(value);
+          });
+    }
     return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      function fulfilled(value) {
+        try {
+          step(generator.next(value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function rejected(value) {
+        try {
+          step(generator["throw"](value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function step(result) {
+        result.done
+          ? resolve(result.value)
+          : adopt(result.value).then(fulfilled, rejected);
+      }
+      step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+  };
+var __importDefault =
+  (this && this.__importDefault) ||
+  function (mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -21,7 +47,7 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 (0, database_1.connectDB)();
 app.get("/", (req, res) => {
-    res.send("Server running");
+  res.send("Server running");
 });
 const PORT = process.env.PORT || 8081;
 // const server = spdy.createServer(
@@ -177,31 +203,32 @@ const PORT = process.env.PORT || 8081;
 //   });
 // });
 // Fallback HTTP POST endpoint (if needed)
-app.post("/upload-audio", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/upload-audio", (req, res) =>
+  __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const contentType = req.headers["content-type"];
-        if (!contentType || !contentType.startsWith("audio/")) {
-            res
-                .status(400)
-                .json({ error: "Invalid content type. Must be an audio stream." });
-            return;
-        }
-        console.log("Receiving audio stream via HTTP POST...");
-        const uploadedUrl = yield (0, storage_1.streamToS3)(req, contentType);
-        if (!uploadedUrl) {
-            res.status(500).json({ error: "Failed to upload audio to S3" });
-            return;
-        }
+      const contentType = req.headers["content-type"];
+      if (!contentType || !contentType.startsWith("audio/")) {
         res
-            .status(200)
-            .json({ message: "Audio uploaded successfully", url: uploadedUrl });
+          .status(400)
+          .json({ error: "Invalid content type. Must be an audio stream." });
+        return;
+      }
+      console.log("Receiving audio stream via HTTP POST...");
+      const uploadedUrl = yield (0, storage_1.streamToS3)(req, contentType);
+      if (!uploadedUrl) {
+        res.status(500).json({ error: "Failed to upload audio to S3" });
+        return;
+      }
+      res
+        .status(200)
+        .json({ message: "Audio uploaded successfully", url: uploadedUrl });
+    } catch (error) {
+      console.error("Error uploading audio stream:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-    catch (error) {
-        console.error("Error uploading audio stream:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-}));
+  }),
+);
 // Start the server.
 app.listen(PORT, () => {
-    console.log(`HTTP/2 Server is running on port ${PORT}`);
+  console.log(`HTTP/2 Server is running on port ${PORT}`);
 });

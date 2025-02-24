@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "",
     "serve": "node dist/server.js",
-    "start": "npm run build && npm run serve",
+    "start": "npm run serve",
     "dev": "nodemon src/server.ts",
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
