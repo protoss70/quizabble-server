@@ -111,12 +111,9 @@ function webStreamToNodeStream(
 export async function streamToS3(
   stream: NodeJS.ReadableStream,
   contentType: string,
+  fileKey: string,
 ): Promise<string | null> {
   try {
-    const timestamp = Date.now();
-    const fileExtension = contentType.split("/")[1] || "wav";
-    const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
-
     console.log(`Streaming upload started for ${fileKey}`);
 
     const upload = new Upload({

@@ -111,12 +111,9 @@ function webStreamToNodeStream(webStream) {
  * @param contentType - The MIME type of the audio stream.
  * @returns The URL of the uploaded file if successful, otherwise null.
  */
-function streamToS3(stream, contentType) {
+function streamToS3(stream, contentType, fileKey) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const timestamp = Date.now();
-            const fileExtension = contentType.split("/")[1] || "wav";
-            const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
             console.log(`Streaming upload started for ${fileKey}`);
             const upload = new lib_storage_1.Upload({
                 client: s3,

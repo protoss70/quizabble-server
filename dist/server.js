@@ -76,7 +76,7 @@ io.on("connection", (socket) => {
             data.passThrough.end();
             console.log("Audio stream ended for socket:", socket.id);
             try {
-                const uploadedUrl = yield (0, storage_1.streamToS3)(data.passThrough, data.contentType);
+                const uploadedUrl = yield (0, storage_1.streamToS3)(data.passThrough, data.contentType, data.fileKey);
                 socket.emit("upload-success", { url: uploadedUrl });
             }
             catch (err) {
@@ -93,7 +93,7 @@ io.on("connection", (socket) => {
             data.passThrough.end();
             console.log("Finalizing upload after disconnect for socket:", socket.id);
             try {
-                const uploadedUrl = yield (0, storage_1.streamToS3)(data.passThrough, data.contentType);
+                const uploadedUrl = yield (0, storage_1.streamToS3)(data.passThrough, data.contentType, data.fileKey);
                 console.log("Upload successful on disconnect, URL:", uploadedUrl);
             }
             catch (err) {

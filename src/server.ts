@@ -81,6 +81,7 @@ io.on("connection", (socket) => {
         const uploadedUrl = await streamToS3(
           data.passThrough,
           data.contentType,
+          data.fileKey, // use the original file key here
         );
         socket.emit("upload-success", { url: uploadedUrl });
       } catch (err) {
@@ -101,6 +102,7 @@ io.on("connection", (socket) => {
         const uploadedUrl = await streamToS3(
           data.passThrough,
           data.contentType,
+          data.fileKey // <-- Pass the file key here
         );
         console.log("Upload successful on disconnect, URL:", uploadedUrl);
       } catch (err) {
