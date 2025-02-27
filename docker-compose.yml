@@ -29,6 +29,7 @@ services:
       # 3. If you still want the ACME challenge folder (optional):
       - ./nginx:/etc/nginx/templates
       - ./nginx/entrypoint.sh:/entrypoint.sh
+      - /etc/letsencrypt:/etc/letsencrypt:ro
 
     environment:
       - ENV=production
