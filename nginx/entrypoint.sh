@@ -3,7 +3,6 @@
 echo "Using Production Nginx Config"
 cp /etc/nginx/templates/prod.conf /etc/nginx/conf.d/default.conf
 
-mkdir -p /var/www/certbot
 
 # Comment out Certbot generation completely:
 # if [ ! -f "/etc/letsencrypt/live/api.quizabble.com/fullchain.pem" ]; then

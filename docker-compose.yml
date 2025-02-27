@@ -10,7 +10,9 @@ services:
       - "8081:8081"
 
   nginx:
-    build: ./nginx
+    image: nginx:latest
+    # OR if you're still using a custom Dockerfile, replace with:
+    # build: ./nginx
     restart: unless-stopped
     depends_on:
       - node_app
@@ -18,10 +20,16 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      # 1. Mount the live cert folder (read-only):
+      - /etc/letsencrypt/live/api.quizabble.com:/etc/letsencrypt/live/api.quizabble.com:ro
+
+      # 2. Mount the Let’s Encrypt `options-ssl-nginx.conf` file if you want it:
+      - /etc/letsencrypt/options-ssl-nginx.conf:/etc/letsencrypt/options-ssl-nginx.conf:ro
+
+      # 3. If you still want the ACME challenge folder (optional):
       - ./nginx:/etc/nginx/templates
       - ./nginx/entrypoint.sh:/entrypoint.sh
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
+
     environment:
       - ENV=production
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
