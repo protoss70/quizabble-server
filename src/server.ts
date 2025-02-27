@@ -5,8 +5,6 @@ import { Server } from "socket.io";
 import { PassThrough } from "stream";
 import { connectDB } from "./services/database";
 import { streamToS3 } from "./services/storage";
-import fs from "fs";
-import https from "https";
 
 dotenv.config();
 const app = express();
@@ -19,20 +17,8 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Server running");
 });
 
-let httpServer;
-if (process.env.ENVIRONMENT === "local") {
-  // Use HTTPS locally with PEM files
-  httpServer = https.createServer(
-    {
-      key: fs.readFileSync("./server-key.pem"),
-      cert: fs.readFileSync("./server.pem"),
-    },
-    app,
-  );
-  console.log("Running with HTTPS locally");
-} else {
-  httpServer = createServer(app);
-}
+// Use HTTP server
+const httpServer = createServer(app);
 
 // Initialize Socket.IO
 const io = new Server(httpServer, {
@@ -102,7 +88,7 @@ io.on("connection", (socket) => {
         const uploadedUrl = await streamToS3(
           data.passThrough,
           data.contentType,
-          data.fileKey // <-- Pass the file key here
+          data.fileKey, // <-- Pass the file key here
         );
         console.log("Upload successful on disconnect, URL:", uploadedUrl);
       } catch (err) {

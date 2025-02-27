@@ -19,8 +19,6 @@ const socket_io_1 = require("socket.io");
 const stream_1 = require("stream");
 const database_1 = require("./services/database");
 const storage_1 = require("./services/storage");
-const fs_1 = __importDefault(require("fs"));
-const https_1 = __importDefault(require("https"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -29,18 +27,8 @@ app.use(express_1.default.json());
 app.get("/", (req, res) => {
     res.send("Server running");
 });
-let httpServer;
-if (process.env.ENVIRONMENT === "local") {
-    // Use HTTPS locally with PEM files
-    httpServer = https_1.default.createServer({
-        key: fs_1.default.readFileSync("./server-key.pem"),
-        cert: fs_1.default.readFileSync("./server.pem"),
-    }, app);
-    console.log("Running with HTTPS locally");
-}
-else {
-    httpServer = (0, http_1.createServer)(app);
-}
+// Use HTTP server
+const httpServer = (0, http_1.createServer)(app);
 // Initialize Socket.IO
 const io = new socket_io_1.Server(httpServer, {
     cors: {
