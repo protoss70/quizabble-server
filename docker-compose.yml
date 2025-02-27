@@ -14,6 +14,8 @@ services:
     # OR if you're still using a custom Dockerfile, replace with:
     # build: ./nginx
     restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       - node_app
     ports:
