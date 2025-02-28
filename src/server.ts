@@ -5,10 +5,21 @@ import { Server } from "socket.io";
 import { PassThrough } from "stream";
 import { connectDB } from "./services/database";
 import { streamToS3 } from "./services/storage";
+import cors from "cors";
 
 dotenv.config();
 const app = express();
 app.use(express.json());
+
+// Set up CORS policies
+const allowedOrigins = ["http://localhost:5173", "https://quizabble.web.app"];
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 
 // Connect to the database
 connectDB();
@@ -23,108 +34,89 @@ const httpServer = createServer(app);
 // Initialize Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // Adjust this for production
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
 
+
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
-  socket.on("start-audio", (data: { contentType?: string }) => {
+  socket.on("start-audio", async (data: { contentType?: string }) => {
     const contentType = data?.contentType || "audio/webm";
     const timestamp = Date.now();
     const fileExtension = contentType.split("/")[1] || "webm";
     const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
-
+  
     const passThrough = new PassThrough();
+  
+    // Start streaming to S3 immediately
+    streamToS3(passThrough, contentType, fileKey)
+      .then((uploadedUrl) => {
+        if (uploadedUrl) {
+          socket.emit("upload-success", { url: uploadedUrl });
+          console.log(`Upload successful for ${fileKey}: ${uploadedUrl}`);
+        } else {
+          socket.emit("upload-error", { error: "Failed to upload audio" });
+        }
+      })
+      .catch((err) => {
+        console.error("Error uploading audio stream:", err);
+        socket.emit("upload-error", { error: "Failed to upload audio" });
+      });
+  
+    // Store stream in socket data for real-time writing
     socket.data = {
       passThrough,
       fileKey,
       contentType,
-      uploadTriggered: false,
-      isPaused: false, // New flag to track pause state
+      isPaused: false, // Track pause state
     };
-
+  
     console.log(
-      `Started S3 streaming upload for socket ${socket.id} with key ${fileKey}`,
+      `Started real-time S3 streaming for socket ${socket.id} with key ${fileKey}`
     );
   });
-
-  // Handle incoming audio chunks, but only if not paused
+  
   socket.on("audio-chunk", (chunk: ArrayBuffer | Buffer) => {
     const data = socket.data;
     if (data && data.passThrough && !data.isPaused) {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      data.passThrough.write(buffer);
+      data.passThrough.write(buffer); // Write to the S3 streaming upload
     }
   });
-
-  // Handle pause event
+  
   socket.on("pause-audio", () => {
     if (socket.data) {
       socket.data.isPaused = true;
       console.log(`Audio stream paused for socket: ${socket.id}`);
     }
   });
-
-  // Handle resume event
+  
   socket.on("resume-audio", () => {
     if (socket.data) {
       socket.data.isPaused = false;
       console.log(`Audio stream resumed for socket: ${socket.id}`);
     }
   });
-
-  // Stop recording and finalize the upload
+  
   socket.on("stop-audio", async () => {
-    const data = socket.data;
-    if (
-      data &&
-      data.passThrough &&
-      data.fileKey &&
-      data.contentType &&
-      !data.uploadTriggered
-    ) {
-      data.passThrough.end();
-      console.log("Audio stream ended for socket:", socket.id);
-      try {
-        const uploadedUrl = await streamToS3(
-          data.passThrough,
-          data.contentType,
-          data.fileKey,
-        );
-        socket.emit("upload-success", { url: uploadedUrl });
-      } catch (err) {
-        console.error("Error uploading audio stream:", err);
-        socket.emit("upload-error", { error: "Failed to upload audio" });
-      }
-      data.uploadTriggered = true;
+    if (socket.data && socket.data.passThrough) {
+      socket.data.passThrough.end(); // Close stream
+      console.log(`Audio stream ended for socket: ${socket.id}`);
     }
   });
-
-  // Handle disconnection and finalize the upload
+  
   socket.on("disconnect", async () => {
     console.log("Socket disconnected:", socket.id);
-    const data = socket.data;
-    if (data && data.passThrough && !data.uploadTriggered) {
-      data.passThrough.end();
-      console.log("Finalizing upload after disconnect for socket:", socket.id);
-      try {
-        const uploadedUrl = await streamToS3(
-          data.passThrough,
-          data.contentType,
-          data.fileKey,
-        );
-        console.log("Upload successful on disconnect, URL:", uploadedUrl);
-      } catch (err) {
-        console.error("Error uploading audio stream on disconnect:", err);
-      }
-      data.uploadTriggered = true;
+    if (socket.data && socket.data.passThrough) {
+      socket.data.passThrough.end(); // Ensure stream is closed on disconnect
+      console.log(`Finalizing upload after disconnect for socket: ${socket.id}`);
     }
   });
+  
 });
-
 
 // Start the server
 const PORT = process.env.PORT || 8081;

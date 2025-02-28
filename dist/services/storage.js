@@ -105,12 +105,6 @@ function webStreamToNodeStream(webStream) {
         },
     });
 }
-/**
- * Streams audio data directly to S3.
- * @param stream - The readable stream containing audio data.
- * @param contentType - The MIME type of the audio stream.
- * @returns The URL of the uploaded file if successful, otherwise null.
- */
 function streamToS3(stream, contentType, fileKey) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -120,11 +114,11 @@ function streamToS3(stream, contentType, fileKey) {
                 params: {
                     Bucket: S3_BUCKET_NAME,
                     Key: fileKey,
-                    Body: stream, // Ensure this is a proper Node.js Readable stream
+                    Body: stream, // Streaming directly
                     ContentType: contentType,
                 },
             });
-            yield upload.done(); // Wait for upload completion
+            yield upload.done(); // Upload happens in real-time
             return `https://${S3_BUCKET_NAME}.s3.${S3_REGION}.amazonaws.com/${fileKey}`;
         }
         catch (error) {

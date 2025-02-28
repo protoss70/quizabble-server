@@ -1,13 +1,13 @@
-export type LanguageLevels = 'A1' | 'A2' | 'B1' | 'B2';
+export type LanguageLevels = "A1" | "A2" | "B1" | "B2";
 
 export enum QuestionTypes {
   Rearrangement = "Rearrangement",
   WordMatch = "WordMatch",
   MultipleChoice = "MultipleChoice",
   FillInTheBlank = "FillInTheBlank",
-  // Listening   
+  // Listening
   RearrangementListening = "Rearrangement-Listening",
-  FillInTheBlankListening = "FillInTheBlank-Listening"
+  FillInTheBlankListening = "FillInTheBlank-Listening",
 }
 
 export type GetSummaryAndKeywordsParams = {
