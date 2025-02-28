@@ -44,16 +44,38 @@ io.on("connection", (socket) => {
         const fileExtension = contentType.split("/")[1] || "webm";
         const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
         const passThrough = new stream_1.PassThrough();
-        socket.data = { passThrough, fileKey, contentType, uploadTriggered: false };
+        socket.data = {
+            passThrough,
+            fileKey,
+            contentType,
+            uploadTriggered: false,
+            isPaused: false, // New flag to track pause state
+        };
         console.log(`Started S3 streaming upload for socket ${socket.id} with key ${fileKey}`);
     });
+    // Handle incoming audio chunks, but only if not paused
     socket.on("audio-chunk", (chunk) => {
         const data = socket.data;
-        if (data && data.passThrough) {
+        if (data && data.passThrough && !data.isPaused) {
             const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
             data.passThrough.write(buffer);
         }
     });
+    // Handle pause event
+    socket.on("pause-audio", () => {
+        if (socket.data) {
+            socket.data.isPaused = true;
+            console.log(`Audio stream paused for socket: ${socket.id}`);
+        }
+    });
+    // Handle resume event
+    socket.on("resume-audio", () => {
+        if (socket.data) {
+            socket.data.isPaused = false;
+            console.log(`Audio stream resumed for socket: ${socket.id}`);
+        }
+    });
+    // Stop recording and finalize the upload
     socket.on("stop-audio", () => __awaiter(void 0, void 0, void 0, function* () {
         const data = socket.data;
         if (data &&
@@ -74,6 +96,7 @@ io.on("connection", (socket) => {
             data.uploadTriggered = true;
         }
     }));
+    // Handle disconnection and finalize the upload
     socket.on("disconnect", () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("Socket disconnected:", socket.id);
         const data = socket.data;
