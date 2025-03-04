@@ -132,7 +132,8 @@ io.on("connection", (socket) => {
             setTimeout(() => {
                 if (activeStreams.has(fileKey)) {
                     console.log(`🔍 Checking for reconnects on ${fileKey}...`);
-                    if (!io.sockets.adapter.rooms.has(fileKey)) {
+                    const isFileKeyInUse = [...io.sockets.sockets.values()].some((s) => { var _a; return ((_a = s.data) === null || _a === void 0 ? void 0 : _a.fileKey) === fileKey; });
+                    if (!isFileKeyInUse) {
                         console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
                         passThrough.end(); // Close stream
                         activeStreams.delete(fileKey); // Clean up
@@ -141,7 +142,7 @@ io.on("connection", (socket) => {
                         console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
                     }
                 }
-            }, 60000); // 10 seconds grace period for reconnect
+            }, 10000); // 10 seconds grace period for reconnect
         }
     });
 });
