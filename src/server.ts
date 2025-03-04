@@ -91,7 +91,7 @@ io.on("connection", (socket) => {
           });
       }
 
-      socket.data = { passThrough, fileKey, lastChunkIndex };
+      socket.data = { passThrough, fileKey, lastChunkIndex, lastEmit: 0 };
 
       console.log(
         `🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`,
@@ -122,7 +122,10 @@ io.on("connection", (socket) => {
         console.warn(
           `⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`,
         );
-        socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex });
+        if (socket.data.lastEmit <= 0){
+          socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex });
+          socket.data.lastEmit = 10
+        }
         return;
       }
 
