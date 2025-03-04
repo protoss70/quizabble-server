@@ -6,7 +6,6 @@ import { PassThrough } from "stream";
 import { connectDB } from "./services/database";
 import { streamToS3 } from "./services/storage";
 import cors from "cors";
-
 import { createHash } from "crypto";
 
 function computeSHA256(buffer: Buffer): string {
@@ -29,15 +28,12 @@ app.use(
 
 // Connect to the database
 connectDB();
-
 app.get("/", (req: Request, res: Response) => {
   res.send("Server running");
 });
 
 // Use HTTP server
 const httpServer = createServer(app);
-
-// Initialize Socket.IO
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
@@ -45,105 +41,93 @@ const io = new Server(httpServer, {
   },
 });
 
+// Track file streams and chunk indexes
+const activeStreams = new Map<string, { passThrough: PassThrough; lastChunkIndex: number }>();
+
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
-  socket.on(
-    "start-audio",
-    async (data: { contentType?: string; fileKey?: string }) => {
-      const contentType = data?.contentType || "audio/webm";
-      const fileKey = data?.fileKey; // Get fileKey from frontend
+  socket.on("start-audio", async (data: { contentType?: string; fileKey?: string }) => {
+    const contentType = data?.contentType || "audio/webm";
+    const fileKey = data?.fileKey;
 
-      if (!fileKey) {
-        console.error(
-          `❌ No fileKey received for socket: ${socket.id}. Ignoring request.`,
-        );
-        return;
-      }
+    if (!fileKey) {
+      console.error(`❌ No fileKey received for socket: ${socket.id}. Ignoring request.`);
+      return;
+    }
 
-      const passThrough = new PassThrough();
+    let passThrough;
+    let lastChunkIndex = 0;
 
-      // Start streaming to S3 immediately
+    if (activeStreams.has(fileKey)) {
+      console.log(`🔄 Resuming stream for ${fileKey}`);
+      passThrough = activeStreams.get(fileKey)!.passThrough;
+      lastChunkIndex = activeStreams.get(fileKey)!.lastChunkIndex;
+    } else {
+      console.log(`🎤 Creating new stream for ${fileKey}`);
+      passThrough = new PassThrough();
+      activeStreams.set(fileKey, { passThrough, lastChunkIndex });
+
       streamToS3(passThrough, contentType, fileKey)
         .then((uploadedUrl) => {
           if (uploadedUrl) {
-            socket.emit("upload-success", { url: uploadedUrl });
             console.log(`✅ Upload successful for ${fileKey}: ${uploadedUrl}`);
+            activeStreams.delete(fileKey); // Clean up after successful upload
           } else {
-            socket.emit("upload-error", { error: "Failed to upload audio" });
+            console.error(`❌ Upload failed for ${fileKey}`);
           }
         })
         .catch((err) => {
           console.error("❌ Error uploading audio stream:", err);
-          socket.emit("upload-error", { error: "Failed to upload audio" });
         });
+    }
 
-      // Store fileKey and stream in socket data
-      socket.data = {
-        passThrough,
-        fileKey,
-        contentType,
-        isPaused: false, // Track pause state
-      };
+    socket.data = { passThrough, fileKey, lastChunkIndex };
 
-      console.log(
-        `🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`,
-      );
-    },
-  );
+    console.log(`🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`);
+    
+    // Inform frontend of the last received chunk index
+    socket.emit("chunk-index", { lastChunkIndex });
+  });
 
-  socket.on("audio-chunk", (data: { buffer: number[]; hash: string }) => {
+  socket.on("audio-chunk", (data: { buffer: number[]; hash: string; chunkIndex: number }) => {
     const socketData = socket.data;
-    if (!socketData || !socketData.passThrough || socketData.isPaused) {
+    if (!socketData || !socketData.passThrough) {
       console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
       return;
     }
-  
+
+    const { passThrough, fileKey } = socketData;
+
+    // Fetch stored last chunk index for this file
+    let lastChunkIndex = activeStreams.get(fileKey)?.lastChunkIndex ?? 0;
+
+    if (data.chunkIndex !== lastChunkIndex + 1) {
+      console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`);
+      return;
+    }
+
     try {
-      // data.buffer is now a plain array of bytes
-      const buffer = Buffer.from(data.buffer); // Convert array of numbers to a Node Buffer
-  
+      const buffer = Buffer.from(data.buffer);
+
       const computedHash = computeSHA256(buffer);
       if (computedHash !== data.hash) {
-        console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
+        console.error(`❌ Chunk hash mismatch! Ignoring chunk ${data.chunkIndex} from socket: ${socket.id}`);
         return;
       }
-  
-      socketData.passThrough.write(buffer); // Write verified chunk to S3
+
+      passThrough.write(buffer);
+      activeStreams.get(fileKey)!.lastChunkIndex = data.chunkIndex; // Update chunk index
+      
+      socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex }); // Notify frontend
+      console.log(`📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`);
     } catch (error) {
       console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
     }
   });
 
-  socket.on("pause-audio", () => {
-    if (socket.data) {
-      socket.data.isPaused = true;
-      console.log(`⏸️ Audio stream paused for socket: ${socket.id}`);
-    }
-  });
-
-  socket.on("resume-audio", () => {
-    if (socket.data) {
-      socket.data.isPaused = false;
-      console.log(`▶️ Audio stream resumed for socket: ${socket.id}`);
-    }
-  });
-
-  socket.on("stop-audio", async () => {
-    if (socket.data && socket.data.passThrough) {
-      socket.data.passThrough.end(); // Close stream
-      console.log(`⏹️ Audio stream ended for socket: ${socket.id}`);
-    }
-  });
-
-  socket.on("disconnect", async () => {
-    console.log("❌ Socket disconnected:", socket.id);
-    if (socket.data && socket.data.passThrough) {
-      socket.data.passThrough.end(); // Ensure stream is closed on disconnect
-      console.log(
-        `🛑 Finalizing upload after disconnect for socket: ${socket.id}`,
-      );
-    }
+  socket.on("disconnect", () => {
+    console.log(`❌ Socket disconnected: ${socket.id}`);
   });
 });
 
