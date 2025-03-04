@@ -100,6 +100,7 @@ io.on("connection", (socket) => {
         let lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : -1;
         if (data.chunkIndex !== lastChunkIndex + 1) {
             console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`);
+            socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex });
             return;
         }
         try {
