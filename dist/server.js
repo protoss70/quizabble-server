@@ -48,9 +48,11 @@ io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
     socket.on("start-audio", (data) => __awaiter(void 0, void 0, void 0, function* () {
         const contentType = (data === null || data === void 0 ? void 0 : data.contentType) || "audio/webm";
-        const timestamp = Date.now();
-        const fileExtension = contentType.split("/")[1] || "webm";
-        const fileKey = `class_recordings/${timestamp}.${fileExtension}`;
+        const fileKey = data === null || data === void 0 ? void 0 : data.fileKey;
+        if (!fileKey) {
+            console.error(`No fileKey received for socket: ${socket.id}. Ignoring request.`);
+            return;
+        }
         const passThrough = new stream_1.PassThrough();
         // Start streaming to S3 immediately
         (0, storage_1.streamToS3)(passThrough, contentType, fileKey)
@@ -76,11 +78,17 @@ io.on("connection", (socket) => {
         };
         console.log(`Started real-time S3 streaming for socket ${socket.id} with key ${fileKey}`);
     }));
-    socket.on("audio-chunk", (chunk) => {
-        const data = socket.data;
-        if (data && data.passThrough && !data.isPaused) {
-            const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-            data.passThrough.write(buffer); // Write to the S3 streaming upload
+    socket.on("audio-chunk", (data) => {
+        if (!data.fileKey) {
+            console.error(`Received audio chunk without fileKey from socket: ${socket.id}. Ignoring chunk.`);
+            return;
+        }
+        const socketData = socket.data;
+        if (socketData && socketData.passThrough && !socketData.isPaused) {
+            const buffer = Buffer.isBuffer(data.buffer)
+                ? data.buffer
+                : Buffer.from(data.buffer);
+            socketData.passThrough.write(buffer); // Write to the S3 streaming upload
         }
     });
     socket.on("pause-audio", () => {
@@ -95,10 +103,14 @@ io.on("connection", (socket) => {
             console.log(`Audio stream resumed for socket: ${socket.id}`);
         }
     });
-    socket.on("stop-audio", () => __awaiter(void 0, void 0, void 0, function* () {
+    socket.on("stop-audio", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!data.fileKey) {
+            console.error(`Received stop-audio without fileKey from socket: ${socket.id}. Ignoring.`);
+            return;
+        }
         if (socket.data && socket.data.passThrough) {
             socket.data.passThrough.end(); // Close stream
-            console.log(`Audio stream ended for socket: ${socket.id}`);
+            console.log(`Audio stream ended for socket: ${socket.id} with key ${data.fileKey}`);
         }
     }));
     socket.on("disconnect", () => __awaiter(void 0, void 0, void 0, function* () {
