@@ -20,6 +20,10 @@ const stream_1 = require("stream");
 const database_1 = require("./services/database");
 const storage_1 = require("./services/storage");
 const cors_1 = __importDefault(require("cors"));
+const crypto_1 = require("crypto");
+function computeSHA256(buffer) {
+    return (0, crypto_1.createHash)("sha256").update(buffer).digest("hex");
+}
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -78,20 +82,27 @@ io.on("connection", (socket) => {
         };
         console.log(`🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`);
     }));
-    socket.on("audio-chunk", (chunk) => {
-        const data = socket.data;
-        if (data && data.passThrough && !data.isPaused) {
-            try {
-                const buffer = Buffer.isBuffer(chunk)
-                    ? chunk
-                    : Buffer.from(new Uint8Array(chunk));
-                data.passThrough.write(buffer); // Write to the S3 streaming upload
-            }
-            catch (error) {
-                console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
-            }
+    socket.on("audio-chunk", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        const socketData = socket.data;
+        if (!socketData || !socketData.passThrough || socketData.isPaused) {
+            console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
+            return;
         }
-    });
+        try {
+            const buffer = Buffer.isBuffer(data.buffer)
+                ? data.buffer
+                : Buffer.from(new Uint8Array(data.buffer));
+            const computedHash = computeSHA256(buffer);
+            if (computedHash !== data.hash) {
+                console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
+                return; // Discard corrupt chunk
+            }
+            socketData.passThrough.write(buffer); // Write only verified chunks to S3
+        }
+        catch (error) {
+            console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
+        }
+    }));
     socket.on("pause-audio", () => {
         if (socket.data) {
             socket.data.isPaused = true;
