@@ -93,6 +93,8 @@ io.on("connection", (socket) => {
   );
 
   socket.on("audio-chunk", async (data: { buffer: any; hash: string }) => {
+    console.log("🔍 Received chunk data structure:", typeof data.buffer, data.buffer);
+  
     const socketData = socket.data;
     if (!socketData || !socketData.passThrough || socketData.isPaused) {
       console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
@@ -102,31 +104,34 @@ io.on("connection", (socket) => {
     try {
       let buffer: Buffer;
   
-      // 1) Already a Buffer?
+      // Check if data.buffer is already a Buffer
       if (Buffer.isBuffer(data.buffer)) {
         buffer = data.buffer;
       }
-      // 2) ArrayBuffer -> Convert via Uint8Array
+      // Check if it's an ArrayBuffer and convert it
       else if (data.buffer instanceof ArrayBuffer) {
         buffer = Buffer.from(new Uint8Array(data.buffer));
       }
-      // 3) Object with a .data array (typical for JSON-serialized Buffer)
-      else if (typeof data.buffer === "object" && data.buffer?.data) {
+      // Check if it's an object with a `.data` array (e.g., JSON-serialized Buffer)
+      else if (typeof data.buffer === "object" && Array.isArray(data.buffer.data)) {
+        console.warn("⚠️ Received object with .data array. Converting.");
         buffer = Buffer.from(data.buffer.data);
       }
-      // 4) Fallback (log the shape for debugging)
+      // Handle unknown format
       else {
-        console.error("❌ Received unknown buffer format:", data.buffer);
+        console.error("❌ Unknown buffer format received:", data.buffer);
         return;
       }
   
+      // Compute hash and validate
       const computedHash = computeSHA256(buffer);
       if (computedHash !== data.hash) {
         console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
-        return; // Discard corrupt chunk
+        return;
       }
   
-      socketData.passThrough.write(buffer); // Write only verified chunks to S3
+      // Write verified chunk to stream
+      socketData.passThrough.write(buffer);
   
     } catch (error) {
       console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
