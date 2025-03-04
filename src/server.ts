@@ -45,23 +45,29 @@ const io = new Server(httpServer, {
   },
 });
 
+const activeStreams = new Map();
+
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
-  socket.on(
-    "start-audio",
-    async (data: { contentType?: string; fileKey?: string }) => {
-      const contentType = data?.contentType || "audio/webm";
-      const fileKey = data?.fileKey; // Get fileKey from frontend
+  socket.on("start-audio", async (data: { contentType?: string; fileKey?: string }) => {
+    const contentType = data?.contentType || "audio/webm";
+    const fileKey = data?.fileKey;
 
-      if (!fileKey) {
-        console.error(
-          `❌ No fileKey received for socket: ${socket.id}. Ignoring request.`,
-        );
-        return;
-      }
+    if (!fileKey) {
+      console.error(`❌ No fileKey received for socket: ${socket.id}. Ignoring request.`);
+      return;
+    }
 
-      const passThrough = new PassThrough();
+    let passThrough;
+
+    if (activeStreams.has(fileKey)) {
+      console.log(`🔄 Resuming stream for ${fileKey}`);
+      passThrough = activeStreams.get(fileKey);
+    } else {
+      console.log(`🎤 Creating new stream for ${fileKey}`);
+      passThrough = new PassThrough();
+      activeStreams.set(fileKey, passThrough);
 
       // Start streaming to S3 immediately
       streamToS3(passThrough, contentType, fileKey)
@@ -77,22 +83,33 @@ io.on("connection", (socket) => {
           console.error("❌ Error uploading audio stream:", err);
           socket.emit("upload-error", { error: "Failed to upload audio" });
         });
+    }
 
-      // Store fileKey and stream in socket data
+    socket.data = {
+      passThrough,
+      fileKey,
+      contentType,
+      isPaused: false,
+    };
+
+    console.log(`🎤 Streaming for ${socket.id} with fileKey ${fileKey}`);
+  });
+
+  socket.on("resume-audio", (data: { fileKey?: string }) => {
+    const { fileKey } = data;
+    if (fileKey && activeStreams.has(fileKey)) {
+      console.log(`🔄 Resuming audio for fileKey: ${fileKey}`);
       socket.data = {
-        passThrough,
+        passThrough: activeStreams.get(fileKey),
         fileKey,
-        contentType,
-        isPaused: false, // Track pause state
+        isPaused: false,
       };
+    } else {
+      console.warn(`⚠️ No existing stream found for ${fileKey}, unable to resume.`);
+    }
+  });
 
-      console.log(
-        `🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`,
-      );
-    },
-  );
-
-  socket.on("audio-chunk", (data: { buffer: number[]; hash: string }) => {
+  socket.on("audio-chunk", (data: { buffer: Buffer | ArrayBuffer | { data: number[] }; hash: string }) => {
     const socketData = socket.data;
     if (!socketData || !socketData.passThrough || socketData.isPaused) {
       console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
@@ -100,50 +117,43 @@ io.on("connection", (socket) => {
     }
   
     try {
-      // data.buffer is now a plain array of bytes
-      const buffer = Buffer.from(data.buffer); // Convert array of numbers to a Node Buffer
+      let buffer: Buffer;
   
+      // If data.buffer is already a Buffer, use it directly
+      if (Buffer.isBuffer(data.buffer)) {
+        buffer = data.buffer;
+      }
+      // If data.buffer is an ArrayBuffer, convert it
+      else if (data.buffer instanceof ArrayBuffer) {
+        buffer = Buffer.from(new Uint8Array(data.buffer));
+      }
+      // If data.buffer is an object (possibly a JSON-serialized Buffer), extract the `data` array
+      else if (typeof data.buffer === "object" && "data" in data.buffer && Array.isArray(data.buffer.data)) {
+        buffer = Buffer.from(data.buffer.data);
+      }
+      // Handle unknown formats
+      else {
+        console.error("❌ Unknown buffer format received:", data.buffer);
+        return;
+      }
+  
+      // Compute hash and validate
       const computedHash = computeSHA256(buffer);
       if (computedHash !== data.hash) {
         console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
         return;
       }
   
-      socketData.passThrough.write(buffer); // Write verified chunk to S3
+      // Write verified chunk to stream
+      socketData.passThrough.write(buffer);
+  
     } catch (error) {
       console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
     }
   });
 
-  socket.on("pause-audio", () => {
-    if (socket.data) {
-      socket.data.isPaused = true;
-      console.log(`⏸️ Audio stream paused for socket: ${socket.id}`);
-    }
-  });
-
-  socket.on("resume-audio", () => {
-    if (socket.data) {
-      socket.data.isPaused = false;
-      console.log(`▶️ Audio stream resumed for socket: ${socket.id}`);
-    }
-  });
-
-  socket.on("stop-audio", async () => {
-    if (socket.data && socket.data.passThrough) {
-      socket.data.passThrough.end(); // Close stream
-      console.log(`⏹️ Audio stream ended for socket: ${socket.id}`);
-    }
-  });
-
   socket.on("disconnect", async () => {
     console.log("❌ Socket disconnected:", socket.id);
-    if (socket.data && socket.data.passThrough) {
-      socket.data.passThrough.end(); // Ensure stream is closed on disconnect
-      console.log(
-        `🛑 Finalizing upload after disconnect for socket: ${socket.id}`,
-      );
-    }
   });
 });
 
