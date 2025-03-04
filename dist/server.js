@@ -48,63 +48,40 @@ const io = new socket_io_1.Server(httpServer, {
         methods: ["GET", "POST"],
     },
 });
-const activeStreams = new Map();
 io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
     socket.on("start-audio", (data) => __awaiter(void 0, void 0, void 0, function* () {
         const contentType = (data === null || data === void 0 ? void 0 : data.contentType) || "audio/webm";
-        const fileKey = data === null || data === void 0 ? void 0 : data.fileKey;
+        const fileKey = data === null || data === void 0 ? void 0 : data.fileKey; // Get fileKey from frontend
         if (!fileKey) {
             console.error(`❌ No fileKey received for socket: ${socket.id}. Ignoring request.`);
             return;
         }
-        let passThrough;
-        if (activeStreams.has(fileKey)) {
-            console.log(`🔄 Resuming stream for ${fileKey}`);
-            passThrough = activeStreams.get(fileKey);
-        }
-        else {
-            console.log(`🎤 Creating new stream for ${fileKey}`);
-            passThrough = new stream_1.PassThrough();
-            activeStreams.set(fileKey, passThrough);
-            // Start streaming to S3 immediately
-            (0, storage_1.streamToS3)(passThrough, contentType, fileKey)
-                .then((uploadedUrl) => {
-                if (uploadedUrl) {
-                    socket.emit("upload-success", { url: uploadedUrl });
-                    console.log(`✅ Upload successful for ${fileKey}: ${uploadedUrl}`);
-                }
-                else {
-                    socket.emit("upload-error", { error: "Failed to upload audio" });
-                }
-            })
-                .catch((err) => {
-                console.error("❌ Error uploading audio stream:", err);
+        const passThrough = new stream_1.PassThrough();
+        // Start streaming to S3 immediately
+        (0, storage_1.streamToS3)(passThrough, contentType, fileKey)
+            .then((uploadedUrl) => {
+            if (uploadedUrl) {
+                socket.emit("upload-success", { url: uploadedUrl });
+                console.log(`✅ Upload successful for ${fileKey}: ${uploadedUrl}`);
+            }
+            else {
                 socket.emit("upload-error", { error: "Failed to upload audio" });
-            });
-        }
+            }
+        })
+            .catch((err) => {
+            console.error("❌ Error uploading audio stream:", err);
+            socket.emit("upload-error", { error: "Failed to upload audio" });
+        });
+        // Store fileKey and stream in socket data
         socket.data = {
             passThrough,
             fileKey,
             contentType,
-            isPaused: false,
+            isPaused: false, // Track pause state
         };
-        console.log(`🎤 Streaming for ${socket.id} with fileKey ${fileKey}`);
+        console.log(`🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`);
     }));
-    socket.on("resume-audio", (data) => {
-        const { fileKey } = data;
-        if (fileKey && activeStreams.has(fileKey)) {
-            console.log(`🔄 Resuming audio for fileKey: ${fileKey}`);
-            socket.data = {
-                passThrough: activeStreams.get(fileKey),
-                fileKey,
-                isPaused: false,
-            };
-        }
-        else {
-            console.warn(`⚠️ No existing stream found for ${fileKey}, unable to resume.`);
-        }
-    });
     socket.on("audio-chunk", (data) => {
         const socketData = socket.data;
         if (!socketData || !socketData.passThrough || socketData.isPaused) {
@@ -112,41 +89,43 @@ io.on("connection", (socket) => {
             return;
         }
         try {
-            let buffer;
-            // If data.buffer is already a Buffer, use it directly
-            if (Buffer.isBuffer(data.buffer)) {
-                buffer = data.buffer;
-            }
-            // If data.buffer is an ArrayBuffer, convert it
-            else if (data.buffer instanceof ArrayBuffer) {
-                buffer = Buffer.from(new Uint8Array(data.buffer));
-            }
-            // If data.buffer is an object (possibly a JSON-serialized Buffer), extract the `data` array
-            else if (typeof data.buffer === "object" &&
-                "data" in data.buffer &&
-                Array.isArray(data.buffer.data)) {
-                buffer = Buffer.from(data.buffer.data);
-            }
-            // Handle unknown formats
-            else {
-                console.error("❌ Unknown buffer format received:", data.buffer);
-                return;
-            }
-            // Compute hash and validate
+            // data.buffer is now a plain array of bytes
+            const buffer = Buffer.from(data.buffer); // Convert array of numbers to a Node Buffer
             const computedHash = computeSHA256(buffer);
             if (computedHash !== data.hash) {
                 console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
                 return;
             }
-            // Write verified chunk to stream
-            socketData.passThrough.write(buffer);
+            socketData.passThrough.write(buffer); // Write verified chunk to S3
         }
         catch (error) {
             console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
         }
     });
+    socket.on("pause-audio", () => {
+        if (socket.data) {
+            socket.data.isPaused = true;
+            console.log(`⏸️ Audio stream paused for socket: ${socket.id}`);
+        }
+    });
+    socket.on("resume-audio", () => {
+        if (socket.data) {
+            socket.data.isPaused = false;
+            console.log(`▶️ Audio stream resumed for socket: ${socket.id}`);
+        }
+    });
+    socket.on("stop-audio", () => __awaiter(void 0, void 0, void 0, function* () {
+        if (socket.data && socket.data.passThrough) {
+            socket.data.passThrough.end(); // Close stream
+            console.log(`⏹️ Audio stream ended for socket: ${socket.id}`);
+        }
+    }));
     socket.on("disconnect", () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("❌ Socket disconnected:", socket.id);
+        if (socket.data && socket.data.passThrough) {
+            socket.data.passThrough.end(); // Ensure stream is closed on disconnect
+            console.log(`🛑 Finalizing upload after disconnect for socket: ${socket.id}`);
+        }
     }));
 });
 // Start the server
