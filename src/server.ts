@@ -139,8 +139,6 @@ io.on("connection", (socket) => {
 
         passThrough.write(buffer);
         activeStreams.get(fileKey)!.lastChunkIndex = data.chunkIndex; // Update chunk index
-
-        socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex }); // Notify frontend
         console.log(
           `📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`,
         );
