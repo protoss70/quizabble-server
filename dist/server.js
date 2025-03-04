@@ -85,7 +85,7 @@ io.on("connection", (socket) => {
         }
         socket.data = { passThrough, fileKey, lastChunkIndex };
         console.log(`🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`);
-        // Inform frontend of the last received chunk index
+        // ✅ Inform frontend of the last received chunk index
         socket.emit("chunk-index", { lastChunkIndex });
     }));
     socket.on("audio-chunk", (data) => {
@@ -98,9 +98,11 @@ io.on("connection", (socket) => {
         const { passThrough, fileKey } = socketData;
         // Fetch stored last chunk index for this file
         let lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : -1;
+        // ✅ Always emit chunk-index to keep frontend updated
         if (data.chunkIndex !== lastChunkIndex + 1) {
-            console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`);
-            socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex });
+            console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}.`);
+            // Inform frontend about the correct chunk index
+            socket.emit("chunk-index", { lastChunkIndex });
             return;
         }
         try {
@@ -108,22 +110,31 @@ io.on("connection", (socket) => {
             const computedHash = computeSHA256(buffer);
             if (computedHash !== data.hash) {
                 console.error(`❌ Chunk hash mismatch! Ignoring chunk ${data.chunkIndex} from socket: ${socket.id}`);
+                // Emit last correct chunk index so frontend knows where to resume
+                socket.emit("chunk-index", { lastChunkIndex });
                 return;
             }
             passThrough.write(buffer);
-            activeStreams.get(fileKey).lastChunkIndex = data.chunkIndex; // Update chunk index
-            socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex }); // Notify frontend
+            activeStreams.get(fileKey).lastChunkIndex = data.chunkIndex; // ✅ Update chunk index
+            // ✅ Notify frontend of the updated chunk index
+            socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex });
             console.log(`📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`);
         }
         catch (error) {
             console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
+            // Emit last valid chunk index so frontend knows how to recover
+            socket.emit("chunk-index", { lastChunkIndex });
         }
     });
     socket.on("disconnect", () => {
+        var _a, _b;
         console.log(`❌ Socket disconnected: ${socket.id}`);
         if (socket.data && socket.data.passThrough) {
             const { fileKey, passThrough } = socket.data;
             console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
+            // ✅ Emit the last chunk index so frontend knows where it left off
+            const lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : -1;
+            socket.emit("chunk-index", { lastChunkIndex });
             // Wait for some time before finalizing the upload (grace period for reconnects)
             setTimeout(() => {
                 if (activeStreams.has(fileKey)) {
