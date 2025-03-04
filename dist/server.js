@@ -83,7 +83,7 @@ io.on("connection", (socket) => {
                 console.error("❌ Error uploading audio stream:", err);
             });
         }
-        socket.data = { passThrough, fileKey, lastChunkIndex, lastEmit: 0 };
+        socket.data = { passThrough, fileKey, lastChunkIndex, inSync: true };
         console.log(`🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`);
         // Inform frontend of the last received chunk index
         socket.emit("chunk-index", { lastChunkIndex });
@@ -100,12 +100,11 @@ io.on("connection", (socket) => {
         let lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : -1;
         if (data.chunkIndex !== lastChunkIndex + 1) {
             console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`);
-            if (socket.data.lastEmit <= 0) {
+            if (socket.data.inSync) {
                 console.log("Sent chunk index", lastChunkIndex + 1);
                 socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex + 1 });
-                socket.data.lastEmit = 11;
+                socket.data.inSync = false;
             }
-            socket.data.lastEmit -= 1;
             return;
         }
         try {
@@ -118,6 +117,7 @@ io.on("connection", (socket) => {
             passThrough.write(buffer);
             activeStreams.get(fileKey).lastChunkIndex = data.chunkIndex; // Update chunk index
             console.log(`📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`);
+            socket.data.inSync = true;
         }
         catch (error) {
             console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
