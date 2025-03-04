@@ -82,47 +82,26 @@ io.on("connection", (socket) => {
         };
         console.log(`🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`);
     }));
-    socket.on("audio-chunk", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        console.log("🔍 Received chunk data structure:", typeof data.buffer, data.buffer);
+    socket.on("audio-chunk", (data) => {
         const socketData = socket.data;
         if (!socketData || !socketData.passThrough || socketData.isPaused) {
             console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
             return;
         }
         try {
-            let buffer;
-            // Check if data.buffer is already a Buffer
-            if (Buffer.isBuffer(data.buffer)) {
-                buffer = data.buffer;
-            }
-            // Check if it's an ArrayBuffer and convert it
-            else if (data.buffer instanceof ArrayBuffer) {
-                buffer = Buffer.from(new Uint8Array(data.buffer));
-            }
-            // Check if it's an object with a `.data` array (e.g., JSON-serialized Buffer)
-            else if (typeof data.buffer === "object" &&
-                Array.isArray(data.buffer.data)) {
-                console.warn("⚠️ Received object with .data array. Converting.");
-                buffer = Buffer.from(data.buffer.data);
-            }
-            // Handle unknown format
-            else {
-                console.error("❌ Unknown buffer format received:", data.buffer);
-                return;
-            }
-            // Compute hash and validate
+            // data.buffer is now a plain array of bytes
+            const buffer = Buffer.from(data.buffer); // Convert array of numbers to a Node Buffer
             const computedHash = computeSHA256(buffer);
             if (computedHash !== data.hash) {
                 console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
                 return;
             }
-            // Write verified chunk to stream
-            socketData.passThrough.write(buffer);
+            socketData.passThrough.write(buffer); // Write verified chunk to S3
         }
         catch (error) {
             console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
         }
-    }));
+    });
     socket.on("pause-audio", () => {
         if (socket.data) {
             socket.data.isPaused = true;
