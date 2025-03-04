@@ -142,7 +142,7 @@ io.on("connection", (socket) => {
                         console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
                     }
                 }
-            }, 10000); // 10 seconds grace period for reconnect
+            }, 60000); // 10 seconds grace period for reconnect
         }
     });
 });
