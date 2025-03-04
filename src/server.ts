@@ -92,8 +92,7 @@ io.on("connection", (socket) => {
     },
   );
 
-
-  socket.on("audio-chunk", async (data: { buffer: ArrayBuffer | Buffer; hash: string }) => {
+  socket.on("audio-chunk", async (data: { buffer: any; hash: string }) => {
     const socketData = socket.data;
     if (!socketData || !socketData.passThrough || socketData.isPaused) {
       console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
@@ -101,19 +100,39 @@ io.on("connection", (socket) => {
     }
   
     try {
-      const buffer = Buffer.isBuffer(data.buffer) ? data.buffer : Buffer.from(new Uint8Array(data.buffer));
-      const computedHash = computeSHA256(buffer);
+      let buffer: Buffer;
   
+      // 1) Already a Buffer?
+      if (Buffer.isBuffer(data.buffer)) {
+        buffer = data.buffer;
+      }
+      // 2) ArrayBuffer -> Convert via Uint8Array
+      else if (data.buffer instanceof ArrayBuffer) {
+        buffer = Buffer.from(new Uint8Array(data.buffer));
+      }
+      // 3) Object with a .data array (typical for JSON-serialized Buffer)
+      else if (typeof data.buffer === "object" && data.buffer?.data) {
+        buffer = Buffer.from(data.buffer.data);
+      }
+      // 4) Fallback (log the shape for debugging)
+      else {
+        console.error("❌ Received unknown buffer format:", data.buffer);
+        return;
+      }
+  
+      const computedHash = computeSHA256(buffer);
       if (computedHash !== data.hash) {
         console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
         return; // Discard corrupt chunk
       }
   
       socketData.passThrough.write(buffer); // Write only verified chunks to S3
+  
     } catch (error) {
       console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
     }
   });
+  
 
   socket.on("pause-audio", () => {
     if (socket.data) {

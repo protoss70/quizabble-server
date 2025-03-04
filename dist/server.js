@@ -83,15 +83,31 @@ io.on("connection", (socket) => {
         console.log(`🎤 Started streaming for socket ${socket.id} with fileKey ${fileKey}`);
     }));
     socket.on("audio-chunk", (data) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
         const socketData = socket.data;
         if (!socketData || !socketData.passThrough || socketData.isPaused) {
             console.error(`⚠️ Received chunk but no active stream for socket: ${socket.id}`);
             return;
         }
         try {
-            const buffer = Buffer.isBuffer(data.buffer)
-                ? data.buffer
-                : Buffer.from(new Uint8Array(data.buffer));
+            let buffer;
+            // 1) Already a Buffer?
+            if (Buffer.isBuffer(data.buffer)) {
+                buffer = data.buffer;
+            }
+            // 2) ArrayBuffer -> Convert via Uint8Array
+            else if (data.buffer instanceof ArrayBuffer) {
+                buffer = Buffer.from(new Uint8Array(data.buffer));
+            }
+            // 3) Object with a .data array (typical for JSON-serialized Buffer)
+            else if (typeof data.buffer === "object" && ((_a = data.buffer) === null || _a === void 0 ? void 0 : _a.data)) {
+                buffer = Buffer.from(data.buffer.data);
+            }
+            // 4) Fallback (log the shape for debugging)
+            else {
+                console.error("❌ Received unknown buffer format:", data.buffer);
+                return;
+            }
             const computedHash = computeSHA256(buffer);
             if (computedHash !== data.hash) {
                 console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
