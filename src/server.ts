@@ -123,8 +123,8 @@ io.on("connection", (socket) => {
           `⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`,
         );
         if (socket.data.inSync) {
-          console.log("Sent chunk index", lastChunkIndex + 1);
-          socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex + 1 });
+          console.log("Sent chunk index", lastChunkIndex);
+          socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex });
           socket.data.inSync = false;
         }
 
