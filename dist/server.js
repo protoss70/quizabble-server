@@ -60,36 +60,29 @@ io.on("connection", (socket) => {
         }
         let passThrough;
         if (activeStreams.has(fileKey)) {
-            console.log(`🔄 Resuming stream for ${fileKey}`);
+            console.log(`🔄 Resuming existing stream for ${fileKey}`);
             passThrough = activeStreams.get(fileKey);
         }
         else {
             console.log(`🎤 Creating new stream for ${fileKey}`);
             passThrough = new stream_1.PassThrough();
             activeStreams.set(fileKey, passThrough);
-            // Start streaming to S3 immediately
             (0, storage_1.streamToS3)(passThrough, contentType, fileKey)
                 .then((uploadedUrl) => {
                 if (uploadedUrl) {
-                    socket.emit("upload-success", { url: uploadedUrl });
                     console.log(`✅ Upload successful for ${fileKey}: ${uploadedUrl}`);
+                    activeStreams.delete(fileKey); // Clean up after successful upload
                 }
                 else {
-                    socket.emit("upload-error", { error: "Failed to upload audio" });
+                    console.error(`❌ Upload failed for ${fileKey}`);
                 }
             })
                 .catch((err) => {
                 console.error("❌ Error uploading audio stream:", err);
-                socket.emit("upload-error", { error: "Failed to upload audio" });
             });
         }
-        socket.data = {
-            passThrough,
-            fileKey,
-            contentType,
-            isPaused: false,
-        };
-        console.log(`🎤 Streaming for ${socket.id} with fileKey ${fileKey}`);
+        socket.data = { passThrough, fileKey, contentType, isPaused: false };
+        console.log(`🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}`);
     }));
     socket.on("resume-audio", (data) => {
         const { fileKey } = data;
@@ -113,29 +106,24 @@ io.on("connection", (socket) => {
         }
         try {
             let buffer;
-            // If data.buffer is already a Buffer, use it directly
             if (Buffer.isBuffer(data.buffer)) {
                 buffer = data.buffer;
             }
-            // If data.buffer is an ArrayBuffer, convert it
             else if (data.buffer instanceof ArrayBuffer) {
                 buffer = Buffer.from(new Uint8Array(data.buffer));
             }
-            // If data.buffer is an object (possibly a JSON-serialized Buffer), extract the `data` array
-            else if (typeof data.buffer === "object" &&
-                "data" in data.buffer &&
-                Array.isArray(data.buffer.data)) {
+            else if (typeof data.buffer === "object" && "data" in data.buffer) {
+                // @ts-expect-error
                 buffer = Buffer.from(data.buffer.data);
             }
-            // Handle unknown formats
             else {
-                console.error("❌ Unknown buffer format received:", data.buffer);
+                console.error("❌ Unknown buffer format:", data.buffer);
                 return;
             }
-            // Compute hash and validate
+            // Hash validation
             const computedHash = computeSHA256(buffer);
             if (computedHash !== data.hash) {
-                console.error(`❌ Chunk hash mismatch! Possible corruption. Ignoring chunk from socket: ${socket.id}`);
+                console.error(`❌ Chunk hash mismatch! Ignoring chunk from socket: ${socket.id}`);
                 return;
             }
             // Write verified chunk to stream
