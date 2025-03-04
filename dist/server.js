@@ -59,7 +59,7 @@ io.on("connection", (socket) => {
             return;
         }
         let passThrough;
-        let lastChunkIndex = 0;
+        let lastChunkIndex = -1;
         if (activeStreams.has(fileKey)) {
             console.log(`🔄 Resuming stream for ${fileKey}`);
             passThrough = activeStreams.get(fileKey).passThrough;
@@ -97,7 +97,7 @@ io.on("connection", (socket) => {
         }
         const { passThrough, fileKey } = socketData;
         // Fetch stored last chunk index for this file
-        let lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : 0;
+        let lastChunkIndex = (_b = (_a = activeStreams.get(fileKey)) === null || _a === void 0 ? void 0 : _a.lastChunkIndex) !== null && _b !== void 0 ? _b : -1;
         if (data.chunkIndex !== lastChunkIndex + 1) {
             console.warn(`⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`);
             return;
