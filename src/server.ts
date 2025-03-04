@@ -122,7 +122,7 @@ io.on("connection", (socket) => {
         console.warn(
           `⚠️ Out-of-order chunk: Expected ${lastChunkIndex + 1}, but received ${data.chunkIndex}. Ignoring.`,
         );
-        socket.emit("chunk-index", { lastChunkIndex: data.chunkIndex });
+        socket.emit("chunk-index", { lastChunkIndex: lastChunkIndex });
         return;
       }
 
