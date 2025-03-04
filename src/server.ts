@@ -182,7 +182,7 @@ io.on("connection", (socket) => {
             );
           }
         }
-      }, 10000); // 10 seconds grace period for reconnect
+      }, 60000); // 10 seconds grace period for reconnect
     }
   });
 });
