@@ -120,6 +120,24 @@ io.on("connection", (socket) => {
     });
     socket.on("disconnect", () => {
         console.log(`❌ Socket disconnected: ${socket.id}`);
+        if (socket.data && socket.data.passThrough) {
+            const { fileKey, passThrough } = socket.data;
+            console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
+            // Wait for some time before finalizing the upload (grace period for reconnects)
+            setTimeout(() => {
+                if (activeStreams.has(fileKey)) {
+                    console.log(`🔍 Checking for reconnects on ${fileKey}...`);
+                    if (!io.sockets.adapter.rooms.has(fileKey)) {
+                        console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
+                        passThrough.end(); // Close stream
+                        activeStreams.delete(fileKey); // Clean up
+                    }
+                    else {
+                        console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
+                    }
+                }
+            }, 10000); // 10 seconds grace period for reconnect
+        }
     });
 });
 // Start the server
