@@ -80,15 +80,36 @@ io.on("connection", (socket) => {
     }));
     socket.on("audio-chunk", (data) => {
         if (!data.fileKey) {
-            console.error(`Received audio chunk without fileKey from socket: ${socket.id}. Ignoring chunk.`);
+            console.error(`❌ Received audio chunk without fileKey from socket: ${socket.id}. Ignoring chunk.`);
             return;
         }
+        console.log("Received chunk data type:", typeof data.buffer);
         const socketData = socket.data;
         if (socketData && socketData.passThrough && !socketData.isPaused) {
-            const buffer = Buffer.isBuffer(data.buffer)
-                ? data.buffer
-                : Buffer.from(data.buffer);
-            socketData.passThrough.write(buffer); // Write to the S3 streaming upload
+            try {
+                let buffer;
+                // If it's already a Buffer, use it directly
+                if (Buffer.isBuffer(data.buffer)) {
+                    buffer = data.buffer;
+                }
+                // If it's an ArrayBuffer, convert it
+                else if (data.buffer instanceof ArrayBuffer) {
+                    buffer = Buffer.from(new Uint8Array(data.buffer));
+                }
+                // If it's an object (serialized buffer), properly convert it
+                else if (typeof data.buffer === "object" && data.buffer.data) {
+                    console.warn("⚠️ Received unexpected object format for buffer. Converting via Uint8Array.");
+                    buffer = Buffer.from(new Uint8Array(data.buffer.data)); // Correct conversion
+                }
+                else {
+                    console.error("❌ Unknown buffer format received:", typeof data.buffer);
+                    return;
+                }
+                socketData.passThrough.write(buffer); // Write to the S3 streaming upload
+            }
+            catch (error) {
+                console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
+            }
         }
     });
     socket.on("pause-audio", () => {
