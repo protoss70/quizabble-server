@@ -132,6 +132,8 @@ io.on("connection", (socket) => {
             // End the stream and remove from active streams
             passThrough.end();
             activeStreams.delete(fileKey);
+            // Set flag to prevent double upload on disconnect
+            socket.data.isFinished = true;
             // Notify the client
             socket.emit("recording-finished", { fileKey });
             // Optionally disconnect the socket
@@ -142,7 +144,13 @@ io.on("connection", (socket) => {
         }
     });
     socket.on("disconnect", () => {
+        var _a;
         console.log(`❌ Socket disconnected: ${socket.id}`);
+        // Check if the recording was manually finished to prevent duplicate upload
+        if ((_a = socket.data) === null || _a === void 0 ? void 0 : _a.isFinished) {
+            console.log(`🚫 Skipping disconnect handling for ${socket.id} (already finished)`);
+            return; // Exit early, preventing unnecessary upload
+        }
         if (socket.data && socket.data.passThrough) {
             const { fileKey, passThrough } = socket.data;
             console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
