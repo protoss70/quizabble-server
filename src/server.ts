@@ -96,9 +96,6 @@ io.on("connection", (socket) => {
       console.log(
         `🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`,
       );
-
-      // Inform frontend of the last received chunk index
-      socket.emit("chunk-index", { lastChunkIndex });
     },
   );
 
@@ -144,9 +141,12 @@ io.on("connection", (socket) => {
 
         passThrough.write(buffer);
         activeStreams.get(fileKey)!.lastChunkIndex = data.chunkIndex; // Update chunk index
-        console.log(
-          `📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`,
-        );
+        if (data.chunkIndex % 100 === 0){
+          socket.emit("clear-chunks", { checkpoint: data.chunkIndex })
+          console.log(
+            `📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`,
+          );
+        }
         socket.data.inSync = true;
       } catch (error) {
         console.error(
@@ -157,38 +157,58 @@ io.on("connection", (socket) => {
     },
   );
 
+  socket.on("finish-recording", () => {
+    console.log(`📌 Finish recording requested for socket: ${socket.id}`);
+
+    if (socket.data && socket.data.passThrough) {
+        const { fileKey, passThrough } = socket.data;
+
+        console.log(`⏹️ Manually finalizing upload for ${fileKey}`);
+
+        // End the stream and remove from active streams
+        passThrough.end();
+        activeStreams.delete(fileKey);
+
+        // Notify the client
+        socket.emit("recording-finished", { fileKey });
+
+        // Optionally disconnect the socket
+        socket.disconnect();
+    } else {
+        console.warn(`⚠️ No active recording found for socket: ${socket.id}`);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`❌ Socket disconnected: ${socket.id}`);
 
     if (socket.data && socket.data.passThrough) {
-      const { fileKey, passThrough } = socket.data;
-      console.log(
-        `🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`,
-      );
+        const { fileKey, passThrough } = socket.data;
+        console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
 
-      // Wait for some time before finalizing the upload (grace period for reconnects)
-      setTimeout(() => {
-        if (activeStreams.has(fileKey)) {
-          console.log(`🔍 Checking for reconnects on ${fileKey}...`);
-          const isFileKeyInUse = [...io.sockets.sockets.values()].some(
-            (s) => s.data?.fileKey === fileKey,
-          );
+        let elapsedSeconds = 0;
+        const interval = setInterval(() => {
+            if (elapsedSeconds >= 60) {
+                clearInterval(interval); // Stop checking after 60 seconds
+            }
+            const isFileKeyInUse = [...io.sockets.sockets.values()].some(
+                (s) => s.data?.fileKey === fileKey
+            );
 
-          if (!isFileKeyInUse) {
-            console.log(
-              `⏹️ No reconnection detected, finalizing upload for ${fileKey}`,
-            );
-            passThrough.end(); // Close stream
-            activeStreams.delete(fileKey); // Clean up
-          } else {
-            console.log(
-              `🔄 Reconnection detected, keeping stream active for ${fileKey}`,
-            );
-          }
-        }
-      }, 60000); // 10 seconds grace period for reconnect
+            if (isFileKeyInUse) {
+                console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
+                clearInterval(interval); // Stop checking if reconnection is found
+            } else if (elapsedSeconds >= 60) {
+                console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
+                passThrough.end(); // Close stream
+                activeStreams.delete(fileKey); // Clean up
+                clearInterval(interval);
+            }
+
+            elapsedSeconds++;
+        }, 1000); // Check every second
     }
-  });
+});
 });
 
 // Start the server

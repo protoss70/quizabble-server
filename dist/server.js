@@ -85,8 +85,6 @@ io.on("connection", (socket) => {
         }
         socket.data = { passThrough, fileKey, lastChunkIndex, inSync: true };
         console.log(`🎙️ Streaming setup for ${socket.id} with fileKey ${fileKey}, last received chunk: ${lastChunkIndex}`);
-        // Inform frontend of the last received chunk index
-        socket.emit("chunk-index", { lastChunkIndex });
     }));
     socket.on("audio-chunk", (data) => {
         var _a, _b;
@@ -116,11 +114,31 @@ io.on("connection", (socket) => {
             }
             passThrough.write(buffer);
             activeStreams.get(fileKey).lastChunkIndex = data.chunkIndex; // Update chunk index
-            console.log(`📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`);
+            if (data.chunkIndex % 100 === 0) {
+                socket.emit("clear-chunks", { checkpoint: data.chunkIndex });
+                console.log(`📝 Received and stored chunk ${data.chunkIndex} for ${fileKey}`);
+            }
             socket.data.inSync = true;
         }
         catch (error) {
             console.error(`❌ Error processing audio chunk for socket: ${socket.id}`, error);
+        }
+    });
+    socket.on("finish-recording", () => {
+        console.log(`📌 Finish recording requested for socket: ${socket.id}`);
+        if (socket.data && socket.data.passThrough) {
+            const { fileKey, passThrough } = socket.data;
+            console.log(`⏹️ Manually finalizing upload for ${fileKey}`);
+            // End the stream and remove from active streams
+            passThrough.end();
+            activeStreams.delete(fileKey);
+            // Notify the client
+            socket.emit("recording-finished", { fileKey });
+            // Optionally disconnect the socket
+            socket.disconnect();
+        }
+        else {
+            console.warn(`⚠️ No active recording found for socket: ${socket.id}`);
         }
     });
     socket.on("disconnect", () => {
@@ -128,21 +146,24 @@ io.on("connection", (socket) => {
         if (socket.data && socket.data.passThrough) {
             const { fileKey, passThrough } = socket.data;
             console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
-            // Wait for some time before finalizing the upload (grace period for reconnects)
-            setTimeout(() => {
-                if (activeStreams.has(fileKey)) {
-                    console.log(`🔍 Checking for reconnects on ${fileKey}...`);
-                    const isFileKeyInUse = [...io.sockets.sockets.values()].some((s) => { var _a; return ((_a = s.data) === null || _a === void 0 ? void 0 : _a.fileKey) === fileKey; });
-                    if (!isFileKeyInUse) {
-                        console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
-                        passThrough.end(); // Close stream
-                        activeStreams.delete(fileKey); // Clean up
-                    }
-                    else {
-                        console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
-                    }
+            let elapsedSeconds = 0;
+            const interval = setInterval(() => {
+                if (elapsedSeconds >= 60) {
+                    clearInterval(interval); // Stop checking after 60 seconds
                 }
-            }, 60000); // 10 seconds grace period for reconnect
+                const isFileKeyInUse = [...io.sockets.sockets.values()].some((s) => { var _a; return ((_a = s.data) === null || _a === void 0 ? void 0 : _a.fileKey) === fileKey; });
+                if (isFileKeyInUse) {
+                    console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
+                    clearInterval(interval); // Stop checking if reconnection is found
+                }
+                else if (elapsedSeconds >= 60) {
+                    console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
+                    passThrough.end(); // Close stream
+                    activeStreams.delete(fileKey); // Clean up
+                    clearInterval(interval);
+                }
+                elapsedSeconds++;
+            }, 1000); // Check every second
         }
     });
 });
