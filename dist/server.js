@@ -155,23 +155,31 @@ io.on("connection", (socket) => {
             const { fileKey, passThrough } = socket.data;
             console.log(`🛑 Connection lost, keeping stream active for fileKey: ${fileKey}`);
             let elapsedSeconds = 0;
+            let checkInterval = 2000; // Start with 2-second intervals
             const interval = setInterval(() => {
-                if (elapsedSeconds >= 60) {
-                    clearInterval(interval); // Stop checking after 60 seconds
+                if (elapsedSeconds >= 600) {
+                    // Stop after 10 minutes (600s)
+                    clearInterval(interval);
                 }
                 const isFileKeyInUse = [...io.sockets.sockets.values()].some((s) => { var _a; return ((_a = s.data) === null || _a === void 0 ? void 0 : _a.fileKey) === fileKey; });
                 if (isFileKeyInUse) {
                     console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
-                    clearInterval(interval); // Stop checking if reconnection is found
+                    clearInterval(interval); // Stop checking
                 }
-                else if (elapsedSeconds >= 60) {
+                else if (elapsedSeconds >= 600) {
+                    // If user doesn't reconnect within 10 minutes
                     console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
-                    passThrough.end(); // Close stream
-                    activeStreams.delete(fileKey); // Clean up
+                    passThrough.end();
+                    activeStreams.delete(fileKey);
                     clearInterval(interval);
                 }
-                elapsedSeconds++;
-            }, 1000); // Check every second
+                elapsedSeconds += checkInterval / 1000; // Convert ms to seconds
+                // After 1 minute, start exponential backoff
+                if (elapsedSeconds >= 60) {
+                    checkInterval = Math.min(checkInterval * 2, 30000); // Max interval of 30s
+                }
+                setTimeout(() => interval, checkInterval); // Dynamically adjust interval timing
+            }, checkInterval);
         }
     });
 });
