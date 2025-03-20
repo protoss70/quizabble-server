@@ -98,6 +98,109 @@ const prompts: PromptStructure = {
     ],
   },
 
+  rearrangementQuestionEngToTargetPrompt: {
+    messages: [
+      {
+        "role": "system",
+        "content": `You are an AI assistant that helps language learners practice by generating rearrangement questions in their target language.
+        
+        **Task:**
+        - Choose one of the critical questions from the provided list.
+        - Write a concise answer in **English** appropriate for the given student's language level ({student_level}).
+        - **Use this English answer as the question.**
+        - Translate the answer into {target_language}.
+        - Generate {amount} additional incorrect words in {target_language} that are not part of the answer.
+
+        **Output Requirements:**
+        - Return a valid JSON object with the following structure:
+        {
+          "question": "<English answer you came up with>",
+          "options": ["<word1>", "<word2>", "<word3>", ..., "<wordN>"],
+          "answer": "<correct answer with words in proper order in {target_language}>"
+        }
+        - The total number of words in "options" should be equal to the number of words in "answer" + {amount} incorrect words.
+        - Do not include any additional text, commentary, or markdown formatting.
+        - Ensure the output is a valid JSON object with no extra characters.
+
+        **Example Input:**
+        {
+          "critical_questions": ["How long have you been playin electric guitar?"],
+          "student_level": "B1",
+          "amount": 4,
+          "target_language": "Turkish"
+        }
+
+        **Example Output:**
+        {
+          "question": "I have been playing electric guitar for five years.",
+          "options": ["gitar", "beş", "elektrik", "yıldır", "oynamak", "okuyorum", "için", "çalıyorum", "sinemaya"]
+          "answer": "beş yıldır elektrik gitar çalıyorum"
+        }`
+      },
+      {
+        "role": "user",
+        "content": `Generate a rearrangement question using the following parameters:
+        - Critical Questions: {critical_questions}
+        - Student Level: {student_level}
+        - Amount of Incorrect Options: {amount}
+        - Target Language: {target_language}
+
+        Ensure the output follows the specified JSON format.`
+      }
+    ]
+  },
+
+  rearrangementQuestionTargetToEngPrompt: {
+    messages: [
+      {
+        "role": "system",
+        "content": `You are an AI assistant that helps language learners practice by generating rearrangement questions where the question is in the target language, and the answer and options are in English.
+
+        **Task:**
+        - Choose one of the critical questions from the provided list.
+        - Write a concise answer in **English** appropriate for the given student's language level ({student_level}).
+        - **Translate the English answer into {target_language} and use it as the question in the resulting json.**
+        - Generate {amount} additional incorrect words in **English** that are not part of the correct answer.
+
+        **Output Requirements:**
+        - Return a valid JSON object with the following structure:
+        {
+          "question": "<translated answer in {target_language}>",
+          "options": ["<word1>", "<word2>", "<word3>", ..., "<wordN>"],
+          "answer": "<correct answer with words in proper order in English>"
+        }
+        - The total number of words in "options" should be equal to the number of words in "answer" + {amount} incorrect words.
+        - Do not include any additional text, commentary, or markdown formatting.
+        - Ensure the output is a valid JSON object with no extra characters.
+
+        **Example Input:**
+        {
+          "critical_questions": ["How long have you been playing electric guitar?"],
+          "student_level": "B1",
+          "amount": 4,
+          "target_language": "Turkish"
+        }
+
+        **Example Output:**
+        {
+          "question": "Beş yıldır elektrik gitar çalıyorum.",
+          "options": ["I", "have", "been", "playing", "electric", "guitar", "for", "five", "years", "school", "read", "cinema"],
+          "answer": "I have been playing electric guitar for five years."
+        }`
+      },
+      {
+        "role": "user",
+        "content": `Generate a rearrangement question using the following parameters:
+        - Critical Questions: {critical_questions}
+        - Student Level: {student_level}
+        - Amount of Incorrect Options: {amount}
+        - Target Language: {target_language}
+
+        Ensure the output follows the specified JSON format.`
+      }
+    ]
+  },
+
   keywordTranslationQuestionPrompt: {
     messages: [
       {
@@ -193,6 +296,53 @@ const prompts: PromptStructure = {
     ],
   },
   multipleChoiceQuestionPrompt: {
+    messages: [
+      {
+        "role": "system",
+        "content": `You are an AI assistant that helps generate multiple-choice questions for language learners.
+        Your task is to select one keyword from the provided list, translate it into the target language, 
+        and generate a multiple-choice question with the correct translation as one option and distractor options.
+
+        **Instructions:**
+        1. Randomly select one keyword from the provided list.
+        2. Translate the selected keyword into {TargetLanguage}.
+        3. Generate {Amount} incorrect but plausible translations in {TargetLanguage}.
+
+        **Output Requirements:**
+        - Return a valid JSON object with the following structure:
+        {
+          "question": "<selected keyword>",
+          "options": ["<translated option 1>", "<translated option 2>", ..., "<translated option N>"],
+          "answer": "<correct translated option>"
+        }
+        - Ensure all options and the correct answer are in {TargetLanguage}.
+        - Do not provide explanations or additional formatting—only return the JSON object.
+
+        **Example Input:**
+        Keywords: ["apple", "car", "mountain"]
+        Amount: 3
+        TargetLanguage: French
+
+        **Example Output:**
+        {
+          "question": "apple",
+          "options": ["pomme", "voiture", "montagne", "chaise"],
+          "answer": "pomme"
+        }
+        `
+      },
+      {
+        "role": "user",
+        "content": `Generate a multiple-choice question based on the following parameters:
+        Keywords: {Keywords}
+        Amount: {Amount}
+        TargetLanguage: {TargetLanguage}
+        
+        Ensure the output is a valid JSON object matching the required format.`
+      }
+    ]
+  },
+  multipleChoiceQuestionPromptOLD: {
     messages: [
       {
         role: "system",

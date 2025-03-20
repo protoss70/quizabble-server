@@ -7,6 +7,7 @@ import { connectDB } from "./services/database";
 import { streamToS3 } from "./services/storage";
 import cors from "cors";
 import { createHash } from "crypto";
+import { rearrangementQuestionEngToTarget, rearrangementQuestionTargetToEng, wordMultipleChoiceQuestion } from "./services/chatgpt/chatgptService";
 
 function computeSHA256(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
@@ -30,6 +31,101 @@ app.use(
 connectDB();
 app.get("/", (req: Request, res: Response) => {
   res.send("Server running");
+});
+
+app.post("/generate-word-multiple-choice", async (req: Request, res: Response) => {
+  try {
+    const { keywords, amount, targetLanguage } = req.body;
+
+    // Validate input
+    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+      res.status(400).json({ error: "Keywords must be a non-empty array." });
+      return;
+    }
+    if (!amount || typeof amount !== "number" || amount < 2) {
+      res.status(400).json({ error: "Amount must be a number greater than 1." });
+      return;
+    }
+    if (!targetLanguage || typeof targetLanguage !== "string") {
+      res.status(400).json({ error: "TargetLanguage must be a valid string." });
+      return;
+    }
+
+    // Call the OpenAI function
+    const result = await wordMultipleChoiceQuestion(keywords, amount, targetLanguage);
+
+    // Send successful response
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error handling request:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.post("/generate-rearrangement-question-eng-to-target", async (req: Request, res: Response) => {
+  try {
+    const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
+
+    // Validate input
+    if (!criticalQuestions || !Array.isArray(criticalQuestions) || criticalQuestions.length === 0) {
+      res.status(400).json({ error: "CriticalQuestions must be a non-empty array." });
+      return;
+    }
+    if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+      res.status(400).json({ error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'." });
+      return;
+    }
+    if (!amount || typeof amount !== "number" || amount < 1) {
+      res.status(400).json({ error: "Amount must be a number greater than 0." });
+      return;
+    }
+    if (!targetLanguage || typeof targetLanguage !== "string") {
+      res.status(400).json({ error: "TargetLanguage must be a valid string." });
+      return;
+    }
+
+    // Call the function
+    const result = await rearrangementQuestionEngToTarget(criticalQuestions, studentLevel, amount, targetLanguage);
+
+    // Send successful response
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error handling request:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.post("/generate-rearrangement-question-target-to-eng", async (req: Request, res: Response) => {
+  try {
+    const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
+
+    // Validate input
+    if (!criticalQuestions || !Array.isArray(criticalQuestions) || criticalQuestions.length === 0) {
+      res.status(400).json({ error: "CriticalQuestions must be a non-empty array." });
+      return;
+    }
+    if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+      res.status(400).json({ error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'." });
+      return;
+    }
+    if (!amount || typeof amount !== "number" || amount < 1) {
+      res.status(400).json({ error: "Amount must be a number greater than 0." });
+      return;
+    }
+    if (!targetLanguage || typeof targetLanguage !== "string") {
+      res.status(400).json({ error: "TargetLanguage must be a valid string." });
+      return;
+    }
+
+    // Call the function
+    const result = await rearrangementQuestionTargetToEng(criticalQuestions, studentLevel, amount, targetLanguage);
+
+    // Send successful response
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error handling request:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
 });
 
 // Use HTTP server
@@ -201,33 +297,39 @@ io.on("connection", (socket) => {
 
       let elapsedSeconds = 0;
       let checkInterval = 2000; // Start with 2-second intervals
-      
+
       const interval = setInterval(() => {
-        if (elapsedSeconds >= 600) { // Stop after 10 minutes (600s)
+        if (elapsedSeconds >= 600) {
+          // Stop after 10 minutes (600s)
           clearInterval(interval);
         }
-      
+
         const isFileKeyInUse = [...io.sockets.sockets.values()].some(
-          (s) => s.data?.fileKey === fileKey
+          (s) => s.data?.fileKey === fileKey,
         );
-      
-        if (isFileKeyInUse) {
-          console.log(`🔄 Reconnection detected, keeping stream active for ${fileKey}`);
+
+        if (isFileKeyInUse) { 
+          console.log(
+            `🔄 Reconnection detected, keeping stream active for ${fileKey}`,
+          );
           clearInterval(interval); // Stop checking
-        } else if (elapsedSeconds >= 600) { // If user doesn't reconnect within 10 minutes
-          console.log(`⏹️ No reconnection detected, finalizing upload for ${fileKey}`);
+        } else if (elapsedSeconds >= 600) {
+          // If user doesn't reconnect within 10 minutes
+          console.log(
+            `⏹️ No reconnection detected, finalizing upload for ${fileKey}`,
+          );
           passThrough.end();
           activeStreams.delete(fileKey);
           clearInterval(interval);
         }
-      
+
         elapsedSeconds += checkInterval / 1000; // Convert ms to seconds
-      
+
         // After 1 minute, start exponential backoff
         if (elapsedSeconds >= 60) {
           checkInterval = Math.min(checkInterval * 2, 30000); // Max interval of 30s
         }
-      
+
         setTimeout(() => interval, checkInterval); // Dynamically adjust interval timing
       }, checkInterval);
     }

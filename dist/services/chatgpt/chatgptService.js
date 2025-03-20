@@ -24,6 +24,9 @@ exports.rearrangementQuestion = rearrangementQuestion;
 exports.wordMatchQuestion = wordMatchQuestion;
 exports.fillInTheBlankQuestion = fillInTheBlankQuestion;
 exports.multipleChoiceQuestion = multipleChoiceQuestion;
+exports.wordMultipleChoiceQuestion = wordMultipleChoiceQuestion;
+exports.rearrangementQuestionEngToTarget = rearrangementQuestionEngToTarget;
+exports.rearrangementQuestionTargetToEng = rearrangementQuestionTargetToEng;
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = __importDefault(require("./prompts"));
 const templates_1 = require("./templates");
@@ -269,6 +272,134 @@ function multipleChoiceQuestion(criticalQuestions, level) {
         catch (error) {
             console.error("Error calling OpenAI:", error);
             return { error: "Failed to generate multiple choice question." };
+        }
+    });
+}
+function wordMultipleChoiceQuestion(keywords, amount, targetLanguage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.multipleChoiceQuestionPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{Keywords}", keywords.join(", "))
+                        .replace("{Amount}", amount.toString())
+                        .replace("{TargetLanguage}", targetLanguage),
+                })),
+                temperature: 0.5,
+                max_tokens: 300,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.multipleChoiceQuestionTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.options = parsedOutput.options || [];
+                result.answer = parsedOutput.answer || "";
+            }
+            catch (err) {
+                console.error("Failed to parse output:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./${timestamp}_multiple_choice_question.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate multiple-choice question." };
+        }
+    });
+}
+function rearrangementQuestionEngToTarget(criticalQuestions, studentLevel, amount, targetLanguage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.rearrangementQuestionEngToTargetPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{critical_questions}", JSON.stringify(criticalQuestions))
+                        .replace("{student_level}", studentLevel)
+                        .replace("{amount}", amount.toString())
+                        .replace("{target_language}", targetLanguage),
+                })),
+                temperature: 0.5,
+                max_tokens: 300,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.rearrangementQuestionTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.options = parsedOutput.options || [];
+                result.answer = parsedOutput.answer || "";
+            }
+            catch (err) {
+                console.error("Failed to parse JSON response:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./rearrangement_${timestamp}.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate rearrangement question." };
+        }
+    });
+}
+function rearrangementQuestionTargetToEng(criticalQuestions, studentLevel, amount, targetLanguage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: prompts_1.default.rearrangementQuestionTargetToEngPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{critical_questions}", JSON.stringify(criticalQuestions))
+                        .replace("{student_level}", studentLevel)
+                        .replace("{amount}", amount.toString())
+                        .replace("{target_language}", targetLanguage),
+                })),
+                temperature: 0.5,
+                max_tokens: 300,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.rearrangementQuestionTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.options = parsedOutput.options || [];
+                result.answer = parsedOutput.answer || "";
+            }
+            catch (err) {
+                console.error("Failed to parse JSON response:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./rearrangement_target_to_eng_${timestamp}.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate rearrangement question." };
         }
     });
 }

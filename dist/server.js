@@ -21,6 +21,7 @@ const database_1 = require("./services/database");
 const storage_1 = require("./services/storage");
 const cors_1 = __importDefault(require("cors"));
 const crypto_1 = require("crypto");
+const chatgptService_1 = require("./services/chatgpt/chatgptService");
 function computeSHA256(buffer) {
     return (0, crypto_1.createHash)("sha256").update(buffer).digest("hex");
 }
@@ -39,6 +40,120 @@ app.use((0, cors_1.default)({
 app.get("/", (req, res) => {
     res.send("Server running");
 });
+app.post("/generate-word-multiple-choice", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { keywords, amount, targetLanguage } = req.body;
+        // Validate input
+        if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+            res.status(400).json({ error: "Keywords must be a non-empty array." });
+            return;
+        }
+        if (!amount || typeof amount !== "number" || amount < 2) {
+            res
+                .status(400)
+                .json({ error: "Amount must be a number greater than 1." });
+            return;
+        }
+        if (!targetLanguage || typeof targetLanguage !== "string") {
+            res
+                .status(400)
+                .json({ error: "TargetLanguage must be a valid string." });
+            return;
+        }
+        // Call the OpenAI function
+        const result = yield (0, chatgptService_1.wordMultipleChoiceQuestion)(keywords, amount, targetLanguage);
+        // Send successful response
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.error("Error handling request:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+}));
+app.post("/generate-rearrangement-question-eng-to-target", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
+        // Validate input
+        if (!criticalQuestions ||
+            !Array.isArray(criticalQuestions) ||
+            criticalQuestions.length === 0) {
+            res
+                .status(400)
+                .json({ error: "CriticalQuestions must be a non-empty array." });
+            return;
+        }
+        if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+            res
+                .status(400)
+                .json({
+                error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
+            });
+            return;
+        }
+        if (!amount || typeof amount !== "number" || amount < 1) {
+            res
+                .status(400)
+                .json({ error: "Amount must be a number greater than 0." });
+            return;
+        }
+        if (!targetLanguage || typeof targetLanguage !== "string") {
+            res
+                .status(400)
+                .json({ error: "TargetLanguage must be a valid string." });
+            return;
+        }
+        // Call the function
+        const result = yield (0, chatgptService_1.rearrangementQuestionEngToTarget)(criticalQuestions, studentLevel, amount, targetLanguage);
+        // Send successful response
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.error("Error handling request:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+}));
+app.post("/generate-rearrangement-question-target-to-eng", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
+        // Validate input
+        if (!criticalQuestions ||
+            !Array.isArray(criticalQuestions) ||
+            criticalQuestions.length === 0) {
+            res
+                .status(400)
+                .json({ error: "CriticalQuestions must be a non-empty array." });
+            return;
+        }
+        if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+            res
+                .status(400)
+                .json({
+                error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
+            });
+            return;
+        }
+        if (!amount || typeof amount !== "number" || amount < 1) {
+            res
+                .status(400)
+                .json({ error: "Amount must be a number greater than 0." });
+            return;
+        }
+        if (!targetLanguage || typeof targetLanguage !== "string") {
+            res
+                .status(400)
+                .json({ error: "TargetLanguage must be a valid string." });
+            return;
+        }
+        // Call the function
+        const result = yield (0, chatgptService_1.rearrangementQuestionTargetToEng)(criticalQuestions, studentLevel, amount, targetLanguage);
+        // Send successful response
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.error("Error handling request:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+}));
 // Use HTTP server
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {

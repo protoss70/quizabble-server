@@ -40,10 +40,40 @@ export const fillInTheBlankTemplate: {
   options: [],
 };
 
-export const multipleChoiceQuestionTemplate: {
+export const multipleChoiceQuestionTemplateOLD: {
   question: string;
   options: string[];
 } = {
   question: "",
   options: [],
+};
+
+export const multipleChoiceQuestionTemplate: {
+  question: string;
+  options: string[];
+  answer: string;
+} = {
+  question: "",
+  options: [],
+  answer: "",
+};
+
+export const rearrangementQuestionEngToTargetTemplate: {
+  question: string;
+  options: string[];
+  answer: string;
+} = {
+  question: "",
+  options: [],
+  answer: "",
+};
+
+export const rearrangementQuestionTargetToEngTemplate: {
+  question: string;
+  options: string[];
+  answer: string;
+} = {
+  question: "",
+  options: [],
+  answer: "",
 };
