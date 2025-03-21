@@ -85,6 +85,55 @@ const prompts = {
             },
         ],
     },
+    wordRearrangementEngToTargetPrompt: {
+        messages: [
+            {
+                role: "system",
+                content: `You are an AI assistant that helps language learners practice vocabulary in their target language.
+  
+        **Task:**
+        - You will be given a list of English **keywords**.
+        - Randomly choose **one** keyword from the list.
+        - Translate it accurately into **{targetLanguage}**.
+        - Generate **{amount}** incorrect but believable options in **{targetLanguage}** that are not correct translations of the keyword.
+        - Return all options in a shuffled order, including the correct translation.
+        
+        **Output Requirements:**
+        - Return a valid JSON object in the following format:
+        {
+          "question": "<keyword you chose from the list>",
+          "options": ["<translated word>", "<incorrect1>", "<incorrect2>", ...],
+          "answer": "<correct translation>"
+        }
+        - The total number of options must be equal to {amount} + 1.
+        - Do NOT include any extra explanation, markdown, or formatting—just a valid JSON object.
+        - All words in "options" must be single-word responses (not phrases or sentences).
+        
+        **Example Input:**
+        {
+          "keywords": ["car", "bus", "train", "plane"],
+          "amount": 3,
+          "targetLanguage": "Turkish"
+        }
+        
+        **Example Output:**
+        {
+          "question": "car",
+          "options": ["Araba", "Uçak", "Kamyon", "Tren"],
+          "answer": "Araba"
+        }`,
+            },
+            {
+                role: "user",
+                content: `Generate a vocabulary translation and word rearrangement question using these parameters:
+        - Keywords: {keywords}
+        - Number of Incorrect Options: {amount}
+        - Target Language: {targetLanguage}
+        
+        Make sure the output matches the format and requirements.`,
+            },
+        ],
+    },
     rearrangementQuestionEngToTargetPrompt: {
         messages: [
             {

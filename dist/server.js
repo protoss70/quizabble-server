@@ -83,9 +83,7 @@ app.post("/generate-rearrangement-question-eng-to-target", (req, res) => __await
             return;
         }
         if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
-            res
-                .status(400)
-                .json({
+            res.status(400).json({
                 error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
             });
             return;
@@ -112,6 +110,36 @@ app.post("/generate-rearrangement-question-eng-to-target", (req, res) => __await
         res.status(500).json({ error: "Internal server error." });
     }
 }));
+app.post("/generate-word-rearrangement-question-eng-to-target", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { keywords, amount, targetLanguage } = req.body;
+        // Validate input
+        if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+            res.status(400).json({ error: "Keywords must be a non-empty array." });
+            return;
+        }
+        if (!amount || typeof amount !== "number" || amount < 1) {
+            res
+                .status(400)
+                .json({ error: "Amount must be a number greater than 0." });
+            return;
+        }
+        if (!targetLanguage || typeof targetLanguage !== "string") {
+            res
+                .status(400)
+                .json({ error: "TargetLanguage must be a valid string." });
+            return;
+        }
+        // Call the generation function
+        const result = yield (0, chatgptService_1.wordRearrangementQuestionEngToTarget)(keywords, amount, targetLanguage);
+        // Return the result
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.error("Error handling request:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+}));
 app.post("/generate-rearrangement-question-target-to-eng", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
@@ -125,9 +153,7 @@ app.post("/generate-rearrangement-question-target-to-eng", (req, res) => __await
             return;
         }
         if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
-            res
-                .status(400)
-                .json({
+            res.status(400).json({
                 error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
             });
             return;

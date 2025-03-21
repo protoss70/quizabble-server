@@ -27,6 +27,7 @@ exports.multipleChoiceQuestion = multipleChoiceQuestion;
 exports.wordMultipleChoiceQuestion = wordMultipleChoiceQuestion;
 exports.rearrangementQuestionEngToTarget = rearrangementQuestionEngToTarget;
 exports.rearrangementQuestionTargetToEng = rearrangementQuestionTargetToEng;
+exports.wordRearrangementQuestionEngToTarget = wordRearrangementQuestionEngToTarget;
 const openai_1 = __importDefault(require("openai"));
 const prompts_1 = __importDefault(require("./prompts"));
 const templates_1 = require("./templates");
@@ -400,6 +401,48 @@ function rearrangementQuestionTargetToEng(criticalQuestions, studentLevel, amoun
         catch (error) {
             console.error("Error calling OpenAI:", error);
             return { error: "Failed to generate rearrangement question." };
+        }
+    });
+}
+function wordRearrangementQuestionEngToTarget(keywords, amount, targetLanguage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const response = yield openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: prompts_1.default.wordRearrangementEngToTargetPrompt.messages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content
+                        .replace("{keywords}", JSON.stringify(keywords))
+                        .replace("{amount}", amount.toString())
+                        .replace("{targetLanguage}", targetLanguage),
+                })),
+                temperature: 0.5,
+                max_tokens: 300,
+            });
+            const rawOutput = ((_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) || "";
+            const result = Object.assign({}, templates_1.wordRearrangementQuestionTemplate);
+            try {
+                const parsedOutput = JSON.parse(rawOutput);
+                result.question = parsedOutput.question || "";
+                result.options = parsedOutput.options || [];
+                result.answer = parsedOutput.answer || "";
+            }
+            catch (err) {
+                console.error("Failed to parse JSON response:", err);
+            }
+            // Save result to a file
+            const timestamp = new Date()
+                .toLocaleTimeString("en-GB", { hour12: false })
+                .replace(/:/g, "_");
+            const filePath = `./word_rearrangement_eng_to_target_${timestamp}.txt`;
+            fs_1.default.writeFileSync(filePath, JSON.stringify(result, null, 2));
+            console.log(`File saved: ${filePath}`);
+            return result;
+        }
+        catch (error) {
+            console.error("Error calling OpenAI:", error);
+            return { error: "Failed to generate word rearrangement question." };
         }
     });
 }

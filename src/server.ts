@@ -7,7 +7,12 @@ import { connectDB } from "./services/database";
 import { streamToS3 } from "./services/storage";
 import cors from "cors";
 import { createHash } from "crypto";
-import { rearrangementQuestionEngToTarget, rearrangementQuestionTargetToEng, wordMultipleChoiceQuestion } from "./services/chatgpt/chatgptService";
+import {
+  rearrangementQuestionEngToTarget,
+  rearrangementQuestionTargetToEng,
+  wordMultipleChoiceQuestion,
+  wordRearrangementQuestionEngToTarget,
+} from "./services/chatgpt/chatgptService";
 
 function computeSHA256(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
@@ -33,100 +38,201 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Server running");
 });
 
-app.post("/generate-word-multiple-choice", async (req: Request, res: Response) => {
-  try {
-    const { keywords, amount, targetLanguage } = req.body;
+app.post(
+  "/generate-word-multiple-choice",
+  async (req: Request, res: Response) => {
+    try {
+      const { keywords, amount, targetLanguage } = req.body;
 
-    // Validate input
-    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-      res.status(400).json({ error: "Keywords must be a non-empty array." });
-      return;
-    }
-    if (!amount || typeof amount !== "number" || amount < 2) {
-      res.status(400).json({ error: "Amount must be a number greater than 1." });
-      return;
-    }
-    if (!targetLanguage || typeof targetLanguage !== "string") {
-      res.status(400).json({ error: "TargetLanguage must be a valid string." });
-      return;
-    }
+      // Validate input
+      if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        res.status(400).json({ error: "Keywords must be a non-empty array." });
+        return;
+      }
+      if (!amount || typeof amount !== "number" || amount < 2) {
+        res
+          .status(400)
+          .json({ error: "Amount must be a number greater than 1." });
+        return;
+      }
+      if (!targetLanguage || typeof targetLanguage !== "string") {
+        res
+          .status(400)
+          .json({ error: "TargetLanguage must be a valid string." });
+        return;
+      }
 
-    // Call the OpenAI function
-    const result = await wordMultipleChoiceQuestion(keywords, amount, targetLanguage);
+      // Call the OpenAI function
+      const result = await wordMultipleChoiceQuestion(
+        keywords,
+        amount,
+        targetLanguage,
+      );
 
-    // Send successful response
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Error handling request:", error);
-    res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-app.post("/generate-rearrangement-question-eng-to-target", async (req: Request, res: Response) => {
-  try {
-    const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
-
-    // Validate input
-    if (!criticalQuestions || !Array.isArray(criticalQuestions) || criticalQuestions.length === 0) {
-      res.status(400).json({ error: "CriticalQuestions must be a non-empty array." });
-      return;
+      // Send successful response
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Error handling request:", error);
+      res.status(500).json({ error: "Internal server error." });
     }
-    if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
-      res.status(400).json({ error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'." });
-      return;
-    }
-    if (!amount || typeof amount !== "number" || amount < 1) {
-      res.status(400).json({ error: "Amount must be a number greater than 0." });
-      return;
-    }
-    if (!targetLanguage || typeof targetLanguage !== "string") {
-      res.status(400).json({ error: "TargetLanguage must be a valid string." });
-      return;
-    }
+  },
+);
 
-    // Call the function
-    const result = await rearrangementQuestionEngToTarget(criticalQuestions, studentLevel, amount, targetLanguage);
+app.post(
+  "/generate-rearrangement-question-eng-to-target",
+  async (req: Request, res: Response) => {
+    try {
+      const { criticalQuestions, studentLevel, amount, targetLanguage } =
+        req.body;
 
-    // Send successful response
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Error handling request:", error);
-    res.status(500).json({ error: "Internal server error." });
-  }
-});
+      // Validate input
+      if (
+        !criticalQuestions ||
+        !Array.isArray(criticalQuestions) ||
+        criticalQuestions.length === 0
+      ) {
+        res
+          .status(400)
+          .json({ error: "CriticalQuestions must be a non-empty array." });
+        return;
+      }
+      if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+        res
+          .status(400)
+          .json({
+            error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
+          });
+        return;
+      }
+      if (!amount || typeof amount !== "number" || amount < 1) {
+        res
+          .status(400)
+          .json({ error: "Amount must be a number greater than 0." });
+        return;
+      }
+      if (!targetLanguage || typeof targetLanguage !== "string") {
+        res
+          .status(400)
+          .json({ error: "TargetLanguage must be a valid string." });
+        return;
+      }
 
-app.post("/generate-rearrangement-question-target-to-eng", async (req: Request, res: Response) => {
-  try {
-    const { criticalQuestions, studentLevel, amount, targetLanguage } = req.body;
+      // Call the function
+      const result = await rearrangementQuestionEngToTarget(
+        criticalQuestions,
+        studentLevel,
+        amount,
+        targetLanguage,
+      );
 
-    // Validate input
-    if (!criticalQuestions || !Array.isArray(criticalQuestions) || criticalQuestions.length === 0) {
-      res.status(400).json({ error: "CriticalQuestions must be a non-empty array." });
-      return;
+      // Send successful response
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Error handling request:", error);
+      res.status(500).json({ error: "Internal server error." });
     }
-    if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
-      res.status(400).json({ error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'." });
-      return;
-    }
-    if (!amount || typeof amount !== "number" || amount < 1) {
-      res.status(400).json({ error: "Amount must be a number greater than 0." });
-      return;
-    }
-    if (!targetLanguage || typeof targetLanguage !== "string") {
-      res.status(400).json({ error: "TargetLanguage must be a valid string." });
-      return;
-    }
+  },
+);
 
-    // Call the function
-    const result = await rearrangementQuestionTargetToEng(criticalQuestions, studentLevel, amount, targetLanguage);
+app.post(
+  "/generate-word-rearrangement-question-eng-to-target",
+  async (req: Request, res: Response) => {
+    try {
+      const { keywords, amount, targetLanguage } = req.body;
 
-    // Send successful response
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Error handling request:", error);
-    res.status(500).json({ error: "Internal server error." });
-  }
-});
+      // Validate input
+      if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        res
+          .status(400)
+          .json({ error: "Keywords must be a non-empty array." });
+        return
+        }
+
+      if (!amount || typeof amount !== "number" || amount < 1) {
+        res
+          .status(400)
+          .json({ error: "Amount must be a number greater than 0." });
+        return
+      }
+
+      if (!targetLanguage || typeof targetLanguage !== "string") {
+        res
+          .status(400)
+          .json({ error: "TargetLanguage must be a valid string." });
+        return
+        }
+
+      // Call the generation function
+      const result = await wordRearrangementQuestionEngToTarget(
+        keywords,
+        amount,
+        targetLanguage,
+      );
+
+      // Return the result
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Error handling request:", error);
+      res.status(500).json({ error: "Internal server error." });
+    }
+  },
+);
+
+app.post(
+  "/generate-rearrangement-question-target-to-eng",
+  async (req: Request, res: Response) => {
+    try {
+      const { criticalQuestions, studentLevel, amount, targetLanguage } =
+        req.body;
+
+      // Validate input
+      if (
+        !criticalQuestions ||
+        !Array.isArray(criticalQuestions) ||
+        criticalQuestions.length === 0
+      ) {
+        res
+          .status(400)
+          .json({ error: "CriticalQuestions must be a non-empty array." });
+        return;
+      }
+      if (!studentLevel || !["A1", "A2", "B1", "B2"].includes(studentLevel)) {
+        res
+          .status(400)
+          .json({
+            error: "StudentLevel must be one of 'A1', 'A2', 'B1', 'B2'.",
+          });
+        return;
+      }
+      if (!amount || typeof amount !== "number" || amount < 1) {
+        res
+          .status(400)
+          .json({ error: "Amount must be a number greater than 0." });
+        return;
+      }
+      if (!targetLanguage || typeof targetLanguage !== "string") {
+        res
+          .status(400)
+          .json({ error: "TargetLanguage must be a valid string." });
+        return;
+      }
+
+      // Call the function
+      const result = await rearrangementQuestionTargetToEng(
+        criticalQuestions,
+        studentLevel,
+        amount,
+        targetLanguage,
+      );
+
+      // Send successful response
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("Error handling request:", error);
+      res.status(500).json({ error: "Internal server error." });
+    }
+  },
+);
 
 // Use HTTP server
 const httpServer = createServer(app);
@@ -308,7 +414,7 @@ io.on("connection", (socket) => {
           (s) => s.data?.fileKey === fileKey,
         );
 
-        if (isFileKeyInUse) { 
+        if (isFileKeyInUse) {
           console.log(
             `🔄 Reconnection detected, keeping stream active for ${fileKey}`,
           );

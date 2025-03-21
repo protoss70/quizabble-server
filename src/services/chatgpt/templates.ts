@@ -77,3 +77,13 @@ export const rearrangementQuestionTargetToEngTemplate: {
   options: [],
   answer: "",
 };
+
+export const wordRearrangementQuestionTemplate: {
+  question: string;
+  options: string[];
+  answer: string;
+} = {
+  question: "",
+  options: [],
+  answer: "",
+};
